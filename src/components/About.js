@@ -76,9 +76,10 @@ export default function About() {
           z-index: 2;
           width: 100%;
           height: 600px;
-          object-fit: cover;
-          object-position: top;
-          box-shadow: var(--shadow);
+          object-fit: contain;
+          object-position: bottom;
+          mix-blend-mode: multiply;
+          filter: contrast(1.05) brightness(1.05);
         }
 
         .about-tag {
