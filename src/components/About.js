@@ -78,7 +78,7 @@ export default function About() {
           height: 600px;
           object-fit: contain;
           object-position: bottom;
-          filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+          border-radius: 8px;
         }
 
         .about-tag {

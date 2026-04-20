@@ -6,30 +6,20 @@ import About from '@/components/About';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
-import listings from '@/data/listings.json';
 
 export default function Home() {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "ItemList",
-    "itemListElement": listings.map((listing, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "item": {
-        "@type": "Accommodation",
-        "name": listing.title,
-        "description": listing.description,
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": listing.location.city,
-          "addressRegion": listing.location.state,
-          "addressCountry": "BR"
-        },
-        "price": listing.price,
-        "priceCurrency": "BRL",
-        "image": `https://charlesnobre.com.br${listing.images[0]}`
-      }
-    }))
+    "@type": "RealEstateAgent",
+    "name": "Charles R. Nobre | Consultoria Imobiliária",
+    "description": "Consultoria Imobiliária de Alto Padrão no Litoral Sul de SC. Especialista em Imbituba, Garopaba e Imaruí.",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Imbituba",
+      "addressRegion": "SC",
+      "addressCountry": "BR"
+    },
+    "telephone": "+55-48-99945-9527"
   };
 
   return (
