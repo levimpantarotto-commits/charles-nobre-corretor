@@ -78,8 +78,7 @@ export default function About() {
           height: 600px;
           object-fit: contain;
           object-position: bottom;
-          mix-blend-mode: multiply;
-          filter: contrast(1.05) brightness(1.05);
+          filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
         }
 
         .about-tag {

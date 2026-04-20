@@ -1,7 +1,8 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import useReveal from '@/hooks/useReveal';
-import listings from '@/data/listings.json';
+import { supabase } from '@/lib/supabase';
 
 export function PropertyCard({ id, image, title, location, price, type }) {
   const [revealRef, isVisible] = useReveal();
@@ -100,13 +101,44 @@ export function PropertyCard({ id, image, title, location, price, type }) {
           color: var(--secondary);
           margin-bottom: 1.5rem;
         }
-
       `}</style>
     </div>
   );
 }
 
 export default function PropertyGrid() {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setList(data || []);
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProperties();
+  }, []);
+
+  if (loading) return (
+    <div className="loading-state">
+      <p>Carregando imóveis selecionados...</p>
+      <style jsx>{`
+        .loading-state { text-align: center; padding: 5rem; color: var(--text-muted); }
+      `}</style>
+    </div>
+  );
+
   return (
     <section id="properties" className="section-padding">
       <div className="container">
@@ -115,15 +147,15 @@ export default function PropertyGrid() {
           <p className="section-subtitle">A curadoria definitiva para quem busca o melhor do litoral sul catarinense.</p>
         </div>
         <div className="grid">
-          {listings.map((prop) => (
+          {list.map((prop) => (
             <PropertyCard 
               key={prop.id} 
               id={prop.id}
-              image={prop.images[0]}
+              image={prop.images?.[0] || '/images/property1.png'}
               title={prop.title}
-              location={`${prop.location.neighborhood}, ${prop.location.city}`}
+              location={`${prop.neighborhood || prop.location?.neighborhood}, ${prop.city || prop.location?.city}`}
               price={prop.price}
-              type={prop.type}
+              type={prop.category || prop.type}
             />
           ))}
         </div>
