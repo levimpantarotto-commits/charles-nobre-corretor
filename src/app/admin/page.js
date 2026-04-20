@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import AdminLogin from '@/components/AdminLogin';
 
 export default function AdminPage() {
+  const [session, setSession] = useState(null);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -17,10 +20,19 @@ export default function AdminPage() {
     category: 'Residencial',
     images: []
   });
-  const [imageUrl, setImageUrl] = useState('');
 
   useEffect(() => {
-    fetchProperties();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchProperties();
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchProperties();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   async function fetchProperties() {
@@ -35,23 +47,50 @@ export default function AdminPage() {
     setLoading(false);
   }
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `property-images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('properties')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      alert('Erro ao subir imagem: ' + uploadError.message);
+    } else {
+      const { data: { publicUrl } } = supabase.storage
+        .from('properties')
+        .getPublicUrl(filePath);
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, publicUrl]
+      }));
+    }
+    setUploading(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.images.length === 0) return alert('Por favor, adicione pelo menos uma imagem.');
+    
     setLoading(true);
-
     const { error } = await supabase
       .from('properties')
       .insert([{
         ...formData,
-        price: parseFloat(formData.price),
-        images: [imageUrl || '/images/property1.png']
+        price: parseFloat(formData.price)
       }]);
 
     if (error) alert('Erro ao salvar: ' + error.message);
     else {
       alert('Imóvel cadastrado com sucesso!');
       setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
-      setImageUrl('');
       fetchProperties();
     }
     setLoading(false);
@@ -69,13 +108,24 @@ export default function AdminPage() {
     else fetchProperties();
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (!session) {
+    return <AdminLogin onLogin={setSession} />;
+  }
+
   return (
     <div className="admin-container">
       <Navbar />
       
       <main className="container section-padding">
         <div className="admin-header">
-          <h1>Gestão de <span className="text-secondary">Imóveis</span></h1>
+          <div className="header-top">
+            <h1>Gestão de <span className="text-secondary">Imóveis</span></h1>
+            <button onClick={handleLogout} className="btn-logout">Sair do Sistema</button>
+          </div>
           <p>Painel exclusivo do Consultor Charles R. Nobre</p>
         </div>
 
@@ -144,13 +194,24 @@ export default function AdminPage() {
               </div>
 
               <div className="form-group">
-                <label>URL da Imagem (Principal)</label>
-                <input 
-                  type="text" 
-                  placeholder="Cole o link da imagem aqui" 
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
+                <label>Fotos do Imóvel</label>
+                <div className="file-input-wrapper">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="btn-file">
+                    {uploading ? 'Subindo...' : '+ Adicionar Foto'}
+                  </label>
+                </div>
+                <div className="image-previews">
+                  {formData.images.map((img, idx) => (
+                    <img key={idx} src={img} alt="" className="preview-thumb" />
+                  ))}
+                </div>
               </div>
 
               <div className="form-group">
@@ -164,7 +225,7 @@ export default function AdminPage() {
                 ></textarea>
               </div>
 
-              <button type="submit" className="btn-save" disabled={loading}>
+              <button type="submit" className="btn-save" disabled={loading || uploading}>
                 {loading ? 'Processando...' : 'Cadastrar Imóvel'}
               </button>
             </form>
@@ -197,17 +258,32 @@ export default function AdminPage() {
           background: #f8fafc;
           min-height: 100vh;
         }
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.5rem;
+        }
         .admin-header {
-          text-align: center;
           margin-bottom: 4rem;
         }
         .admin-header h1 {
           font-size: 3rem;
           color: var(--primary);
+          margin: 0;
+        }
+        .btn-logout {
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          color: #ef4444;
+          cursor: pointer;
+          font-weight: 600;
         }
         .admin-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr 1.2fr;
           gap: 3rem;
         }
         .admin-form-card, .admin-list-card {
@@ -225,8 +301,36 @@ export default function AdminPage() {
         }
         .admin-form .form-group { margin-bottom: 1.5rem; }
         .admin-form label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .admin-form input, .admin-form select, .admin-form textview, .admin-form textarea {
+        .admin-form input, .admin-form select, .admin-form textarea {
           width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px;
+        }
+        .file-input-wrapper {
+          position: relative;
+          margin-bottom: 1rem;
+        }
+        #file-upload { display: none; }
+        .btn-file {
+          display: inline-block;
+          background: #f1f5f9;
+          padding: 0.8rem 1.5rem;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          color: var(--primary);
+          border: 2px dashed #cbd5e1;
+          width: 100%;
+          text-align: center;
+        }
+        .image-previews {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .preview-thumb {
+          width: 60px;
+          height: 60px;
+          object-fit: cover;
+          border-radius: 4px;
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .btn-save {

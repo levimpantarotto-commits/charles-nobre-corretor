@@ -58,27 +58,38 @@ export default function About() {
 
         .about-image-wrap {
           position: relative;
+          padding: 2rem;
+          background: #fdfcfb;
+          border: 1px solid #e5e7eb;
+          box-shadow: 20px 20px 60px #d1d9e6, -20px -20px 60px #ffffff;
+          border-radius: 2px;
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+          overflow: hidden;
         }
 
         .about-image-bg {
           position: absolute;
-          top: 2rem;
-          left: -2rem;
-          width: 100%;
-          height: 100%;
-          background: #020617;
-          border: 1px solid rgba(197, 160, 89, 0.2);
-          z-index: 1;
+          inset: 0.5rem;
+          border: 1px solid var(--secondary);
+          opacity: 0.3;
+          pointer-events: none;
         }
 
         .about-image {
           position: relative;
           z-index: 2;
-          width: 100%;
-          height: 600px;
-          object-fit: contain;
-          object-position: bottom;
-          border-radius: 8px;
+          width: 110%;
+          height: auto;
+          max-height: 550px;
+          object-fit: cover;
+          object-position: top center;
+          transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .about-image:hover {
+          transform: scale(1.03);
         }
 
         .about-tag {
