@@ -82,7 +82,7 @@ export default function LeadModal() {
             <label>WhatsApp / Telefone</label>
             <input 
               type="tel" 
-              placeholder="(48) 99999-9999" 
+              placeholder="(48) 99945-9527" 
               required 
               value={formData.phone}
               onChange={(e) => setFormData({...formData, phone: e.target.value})}

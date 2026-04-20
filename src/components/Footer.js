@@ -39,7 +39,7 @@ export default function Footer() {
             <h4>Contato</h4>
             <ul>
               <li><FaMapMarkerAlt /> <span>Imbituba, SC - Brasil</span></li>
-              <li><FaPhone /> <span>(48) 99999-9999</span></li>
+              <li><FaPhone /> <span>(48) 99945-9527</span></li>
               <li><FaEnvelope /> <span>contato@charlesnobre.com.br</span></li>
             </ul>
           </div>

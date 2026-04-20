@@ -12,7 +12,7 @@ export default function About() {
           className={`about-image-wrap reveal ${imgVisible ? 'reveal-visible' : ''}`}
         >
           <div className="about-image-bg"></div>
-          <img src="/images/charles.jpg" alt="Charles R. Nobre" className="about-image" />
+          <img src="/images/charles-no-bg.png" alt="Charles R. Nobre" className="about-image" />
         </div>
         <div 
           ref={contentRef}
@@ -66,7 +66,8 @@ export default function About() {
           left: -2rem;
           width: 100%;
           height: 100%;
-          border: 2px solid var(--secondary);
+          background: #020617;
+          border: 1px solid rgba(197, 160, 89, 0.2);
           z-index: 1;
         }
 
