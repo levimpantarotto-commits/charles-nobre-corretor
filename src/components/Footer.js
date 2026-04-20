@@ -48,7 +48,7 @@ export default function Footer() {
         <div className="footer-bottom">
           <p>&copy; {currentYear} Charles R. Nobre. Todos os direitos reservados. Projeto de Elite.</p>
           <div className="footer-legal">
-            <span>CRECI: 000.000-F</span>
+            <span>CRECI: 37177</span>
           </div>
         </div>
       </div>

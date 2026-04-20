@@ -20,6 +20,7 @@ export default function About() {
         >
           <span className="about-tag">Seu Parceiro de Negócios</span>
           <h2 className="about-title">Sobre <span className="text-accent">Charles R. Nobre</span></h2>
+          <span className="creci-badge">CRECI: 37177</span>
           <p className="about-text">
             Com anos de experiência no mercado imobiliário do litoral sul catarinense, 
             Charles R. Nobre tornou-se referência em consultoria para quem busca 
@@ -91,8 +92,19 @@ export default function About() {
 
         .about-title {
           font-size: 3rem;
-          margin-bottom: 2rem;
+          margin-bottom: 0.5rem;
           color: var(--primary);
+        }
+
+        .creci-badge {
+          display: inline-block;
+          background: rgba(197, 160, 89, 0.1);
+          color: var(--secondary);
+          padding: 0.4rem 1rem;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          margin-bottom: 2rem;
         }
 
         .about-text {
