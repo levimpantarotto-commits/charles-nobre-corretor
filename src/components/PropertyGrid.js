@@ -2,15 +2,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import useReveal from '@/hooks/useReveal';
-import { supabase } from '@/lib/supabase';
+import listings from '@/data/listings.json';
 
 export function PropertyCard({ id, image, title, location, price, type }) {
   const [revealRef, isVisible] = useReveal();
   
   // Format price if it's a number
-  const formattedPrice = typeof price === 'number' 
+  const formattedPrice = typeof price === 'number' && price > 0
     ? price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    : price;
+    : 'Consulte o valor';
 
   return (
     <div 
@@ -39,6 +39,9 @@ export function PropertyCard({ id, image, title, location, price, type }) {
           box-shadow: var(--shadow);
           transition: var(--transition);
           border: 1px solid rgba(0,0,0,0.05);
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .card:hover {
@@ -78,6 +81,9 @@ export function PropertyCard({ id, image, title, location, price, type }) {
 
         .card-info {
           padding: 1.5rem;
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
         }
 
         .card-location {
@@ -93,6 +99,7 @@ export function PropertyCard({ id, image, title, location, price, type }) {
           font-size: 1.25rem;
           margin-bottom: 0.5rem;
           color: var(--primary);
+          line-height: 1.2;
         }
 
         .card-price {
@@ -100,6 +107,7 @@ export function PropertyCard({ id, image, title, location, price, type }) {
           font-weight: 600;
           color: var(--secondary);
           margin-bottom: 1.5rem;
+          margin-top: auto;
         }
       `}</style>
     </div>
@@ -111,24 +119,11 @@ export default function PropertyGrid() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProperties() {
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setList(data || []);
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProperties();
+    // For now, we use the local JSON which is easier for the user to update
+    setList(listings);
+    setLoading(false);
   }, []);
+
 
   if (loading) return (
     <div className="loading-state">

@@ -1,53 +1,44 @@
 [
   {
-    "id": "imob-001",
-    "title": "Residência Silveira Lux",
-    "description": "Exclusiva mansão com vista panorâmica para a Praia da Silveira. Arquitetura moderna e acabamentos de alto padrão.",
-    "location": {
-      "city": "Garopaba",
-      "neighborhood": "Praia da Silveira",
-      "state": "SC"
-    },
-    "price": 4500000,
-    "type": "Casa",
-    "intent": "venda",
-    "category": "Residencial",
-    "images": ["/images/property1.png"],
-    "features": ["Vista para o mar", "Piscina", "4 Suítes"],
-    "area": 450
-  },
-  {
-    "id": "imob-002",
-    "title": "Terreno Panorâmico Rosa",
-    "description": "Lote exclusivo no topo da Praia do Rosa. Vista definitiva para a baía.",
+    "id": "imob-138",
+    "title": "Apartamento Garden Residence - Centro",
+    "description": "Sofisticação e conforto no coração de Imbituba. Localizado no Imbituba Garden Residence, este apartamento de alto padrão oferece uma vida urbana com requinte. Totalmente mobiliado com móveis planejados, ambientes integrados e uma sacada gourmet perfeita para receber. O condomínio é completo, com uma piscina de raia no terraço que proporciona uma vista panorâmica espetacular da Praia da Vila.",
     "location": {
       "city": "Imbituba",
-      "neighborhood": "Praia do Rosa",
-      "state": "SC"
-    },
-    "price": 1200000,
-    "type": "Terreno",
-    "intent": "venda",
-    "category": "Terreno",
-    "images": ["/images/property2.png"],
-    "features": ["Escritura Pública", "Vista Mar"],
-    "area": 800
-  },
-  {
-    "id": "imob-003",
-    "title": "Villa Mar e Lagoa",
-    "description": "Casa de campo sofisticada com acesso privativo à lagoa.",
-    "location": {
-      "city": "Imaruí",
       "neighborhood": "Centro",
       "state": "SC"
     },
-    "price": 2500000,
+    "price": 0,
+    "type": "Apartamento",
+    "intent": "venda",
+    "category": "Residencial",
+    "images": ["/images/apt-imbituba.png"],
+    "features": ["3 Dormitórios (1 Suíte)", "Mobiliado", "Sacada Gourmet", "Piscina no Terraço", "Academia", "Vaga de Garagem"],
+    "area": 99.45
+  },
+  {
+    "id": "imob-house-1",
+    "title": "Residência Boutique - Encantos do Sul",
+    "description": "Uma experiência de morar única onde o design rústico-contemporâneo encontra a tranquilidade da natureza. Esta residência se destaca pelo seu amplo deck de madeira que serve como um mirante privativo para o horizonte. Com ambientes amplos e integrados, é o refúgio perfeito para quem busca privacidade e uma conexão autêntica com o estilo de vida litorâneo.",
+    "location": {
+      "city": "Garopaba",
+      "neighborhood": "Região Costeira",
+      "state": "SC"
+    },
+    "price": 0,
     "type": "Casa",
     "intent": "venda",
     "category": "Residencial",
-    "images": ["/images/hero.png"],
-    "features": ["Acesso Lagoa", "Pomar", "Espaço Gourmet"],
-    "area": 1200
+    "images": [
+      "/images/house-1/house-1-1.jpg",
+      "/images/house-1/house-1-2.jpg",
+      "/images/house-1/house-1-3.jpg",
+      "/images/house-1/house-1-4.jpg",
+      "/images/house-1/house-1-5.jpg",
+      "/images/house-1/house-1-6.jpg",
+      "/images/house-1/house-1-7.jpg"
+    ],
+    "features": ["Deck Panorâmico", "Design Exclusivo", "Vista Permanente", "Ambientes Integrados", "Área Verde Preservada"],
+    "area": 150
   }
 ]
