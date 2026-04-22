@@ -103,16 +103,26 @@ export default function AdminPage() {
       document.body.style.overflow = 'hidden';
       
       const cleanup = () => {
-        const selectors = ['.navbar', 'header', 'footer', '.hero-section', '.search-bar', '#nav'];
+        // REMOÇÃO FÍSICA AGRESSIVA (SOBERANIA TOTAL)
+        const selectors = [
+          '.navbar', 'header', 'footer', '.hero-section', 
+          '.search-bar', '#nav', '[class*="Navbar"]', '[class*="Hero"]'
+        ];
         selectors.forEach(selector => {
           const elements = document.querySelectorAll(selector);
-          elements.forEach(el => el.remove());
+          elements.forEach(el => {
+            el.style.display = 'none';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+            el.remove(); // Tenta remover fisicamente se possível
+          });
         });
       };
       
       cleanup();
-      setTimeout(cleanup, 500);
-      setTimeout(cleanup, 2000);
+      setTimeout(cleanup, 300);
+      setTimeout(cleanup, 1000);
+      setTimeout(cleanup, 3000); // Garante a remoção após hidratação completa
 
       fetchProperties();
       fetchSiteConfigs();
@@ -124,7 +134,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem('charles_admin_auth');
     setIsLoggedIn(false);
-    window.location.reload();
+    window.location.href = '/admin'; // Hard reset para limpar o estado
   };
   
   const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '' });
@@ -232,15 +242,34 @@ export default function AdminPage() {
 
   return (
     <div className="admin-marketplace-layout">
-      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA E ROLAGEM */}
+      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA TOTAL */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar, #nav { display: none !important; opacity: 0 !important; pointer-events: none !important; }
-        html, body { background: #020617 !important; overflow: hidden !important; width: 100vw; height: 100vh; margin: 0; padding: 0; }
+        /* BLOQUEIO AGRESSIVO DE ELEMENTOS EXTERNOS */
+        header, .navbar, .hero-section, footer, #nav, .navbar.scrolled { 
+          display: none !important; 
+          visibility: hidden !important; 
+          opacity: 0 !important; 
+          pointer-events: none !important; 
+          height: 0 !important; 
+          padding: 0 !important; 
+          margin: 0 !important;
+        }
+
+        html, body { 
+          background: #020617 !important; 
+          overflow: hidden !important; 
+          width: 100vw !important; 
+          height: 100vh !important; 
+          margin: 0 !important; 
+          padding: 0 !important; 
+        }
         
         .admin-marketplace-layout { 
           position: fixed !important; 
           inset: 0 !important; 
-          z-index: 9999999 !important; 
+          top: 0 !important;
+          left: 0 !important;
+          z-index: 2147483647 !important; /* Valor máximo de z-index */
           background: #020617 !important; 
           width: 100vw !important;
           height: 100vh !important;
