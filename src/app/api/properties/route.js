@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path');
+import path from 'path';
 
 const DATA_PATH = path.join(process.cwd(), 'src/data/listings.json');
 
