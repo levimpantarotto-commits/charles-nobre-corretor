@@ -13,15 +13,6 @@ function LocalAdminLogin({ onLogin }) {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   
-  const handleAttempt = () => {
-    // Validação local com as credenciais padrão do Charles/Levi
-    if (email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') {
-      onLogin();
-    } else {
-      alert('Credenciais incorretas para este painel local.');
-    }
-  };
-
   return (
     <div style={{
       display: 'flex',
@@ -70,19 +61,19 @@ function LocalAdminLogin({ onLogin }) {
               style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }} 
               value={pass} 
               onChange={e => setPass(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAttempt()}
+              onKeyDown={(e) => e.key === 'Enter' && onLogin(email, pass)}
             />
           </div>
         </div>
 
         <button 
-          onClick={handleAttempt}
+          onClick={() => onLogin(email, pass)}
           style={{ width: '100%', borderRadius: '18px', backgroundColor: '#eab308', padding: '1.4rem', fontWeight: 900, color: '#020617', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 10px 30px rgba(234, 179, 8, 0.2)' }}
         >
           Entrar no Painel
         </button>
         <p style={{ marginTop: '2.5rem', fontSize: '9px', color: '#334155', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-          Acesso Local Seguro • v5.1
+          Acesso Local Seguro • v5.2
         </p>
       </div>
     </div>
@@ -91,6 +82,7 @@ function LocalAdminLogin({ onLogin }) {
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,9 +90,13 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [externalUrl, setExternalUrl] = useState('');
   const [activeImgIndex, setActiveImgIndex] = useState(0);
-  
-  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '' });
-  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+
+  // Inicialização e Persistência do Login
+  useEffect(() => {
+    const auth = localStorage.getItem('charles_admin_auth');
+    if (auth === 'true') setIsLoggedIn(true);
+    setInitialized(true);
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -108,6 +104,23 @@ export default function AdminPage() {
       fetchSiteConfigs();
     }
   }, [isLoggedIn]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('charles_admin_auth');
+    setIsLoggedIn(false);
+  };
+  
+  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '' });
+  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+
+  const handleAttemptLogin = (email, pass) => {
+    if (email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') {
+      localStorage.setItem('charles_admin_auth', 'true');
+      setIsLoggedIn(true);
+    } else {
+      alert('Credenciais incorretas para este painel local.');
+    }
+  };
 
   async function fetchProperties() {
     try {
@@ -177,7 +190,8 @@ export default function AdminPage() {
     fetchProperties();
   };
 
-  if (!isLoggedIn) return <LocalAdminLogin onLogin={() => setIsLoggedIn(true)} />;
+  if (!initialized) return null;
+  if (!isLoggedIn) return <LocalAdminLogin onLogin={handleAttemptLogin} />;
 
   return (
     <div className="admin-marketplace-layout">
@@ -191,7 +205,7 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[]}); setShowForm(true); }} className="btn-add-anuncio"><Plus size={16}/> Novo Anúncio</button>
-          <button onClick={() => setIsLoggedIn(false)} className="text-slate-500 hover:text-white transition"><LogOut size={18}/></button>
+          <button onClick={handleLogout} className="text-slate-500 hover:text-white transition"><LogOut size={18}/></button>
         </div>
       </nav>
 
@@ -349,7 +363,10 @@ export default function AdminPage() {
       </main>
 
       <style jsx>{`
-        .admin-marketplace-layout { background: #020617; min-height: 100vh; color: #f8fafc; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; }
+        :global(.navbar) { display: none !important; }
+        :global(.lead-modal), :global(.lead-modal-overlay) { display: none !important; }
+        
+        .admin-marketplace-layout { background: #020617; min-height: 100vh; color: #f8fafc; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; position: relative; z-index: 5000; }
         .admin-top-nav { height: 70px; background: rgba(15, 23, 42, 0.8); backdrop-blur: 20px; border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .nav-link { color: #64748b; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem; transition: 0.3s; }
         .nav-link.active { color: #fff; border-bottom: 2px solid #eab308; }
@@ -424,7 +441,7 @@ export default function AdminPage() {
         .nav-btns button:hover { background: #eab308; color: #020617; opacity: 1; }
 
         /* COLUNA 3: FORM */
-        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; }
+        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; padding-bottom: 120px; }
         .details-form { display: flex; flex-direction: column; gap: 1.5rem; }
         .field label { display: block; font-size: 0.75rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.6rem; }
         .field input, .field select, .field textarea { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 1rem; border-radius: 10px; color: #fff; font-size: 0.9rem; }
