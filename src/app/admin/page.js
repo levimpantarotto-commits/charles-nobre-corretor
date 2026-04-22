@@ -207,10 +207,10 @@ export default function AdminPage() {
 
   return (
     <div className="admin-marketplace-layout">
-      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA */}
+      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA E ROLAGEM */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar { display: none !important; }
-        body { background: #020617; overflow: hidden !important; width: 100vw; height: 100vh; }
+        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar, #nav { display: none !important; }
+        html, body { background: #020617 !important; overflow: hidden !important; width: 100vw; height: 100vh; margin: 0; padding: 0; }
         
         .admin-marketplace-layout { 
           position: fixed !important; 
@@ -223,6 +223,19 @@ export default function AdminPage() {
           flex-direction: column !important;
           overflow: hidden !important; 
           font-family: 'Inter', sans-serif;
+        }
+        
+        .admin-main-container { 
+          flex-grow: 1 !important; 
+          overflow-y: auto !important; 
+          background: #020617 !important;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .layout-split {
+          min-height: 100%;
+          display: flex;
+          flex-direction: column;
         }
       ` }} />
 
@@ -392,17 +405,16 @@ export default function AdminPage() {
           </div>
         )}
       </main>
-
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .admin-top-nav { height: 70px; background: rgba(15, 23, 42, 0.8); backdrop-blur: 20px; border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .nav-link { color: #64748b; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem; transition: 0.3s; }
         .nav-link.active { color: #fff; border-bottom: 2px solid #eab308; }
         .btn-add-anuncio { background: #eab308; color: #020617; padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem; }
         
         .admin-main-container { flex-grow: 1; position: relative; overflow: hidden; }
-        .layout-split { height: calc(100vh - 70px); position: relative; }
+        .layout-split { min-height: 100% }
         
-        .ads-list-panel { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; overflow-y: auto; height: 100%; }
+        .ads-list-panel { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; }
         .ads-list-panel.minimized { opacity: 0.2; pointer-events: none; transform: scale(0.98); }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
         .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
@@ -455,7 +467,7 @@ export default function AdminPage() {
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .btn-save-market { background: #eab308; color: #020617; padding: 1.2rem; border-radius: 12px; font-weight: 900; text-transform: uppercase; border: none; display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 2rem; transition: 0.3s; }
         .glass-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; }
-      `}</style>
+      ` }} />
     </div>
   );
 }
