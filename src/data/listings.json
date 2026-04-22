@@ -12,7 +12,13 @@
     "type": "Apartamento",
     "intent": "venda",
     "category": "Residencial",
-    "images": ["/images/apt-imbituba.png"],
+    "images": [
+      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/ee031883-20ea-4708-89ec-3931ae5a511a1746737997BhiE.jpg",
+      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/cd5fc0ba-7bef-4259-9373-aee488f20acc1746737997DlNg.jpg",
+      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/70b22fe1-ff7d-4eb5-bd6f-f56f38038c1f1746737999KQgQ.jpg",
+      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/172d6904-3706-4cf5-a6d6-b2dc2d5aa2541746737999prVB.jpg",
+      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/209fb8e0-b5f7-41ed-91ae-cf2b3e87a1ab1746737999kLn1.jpg"
+    ],
     "features": ["3 Dormitórios (1 Suíte)", "Mobiliado", "Sacada Gourmet", "Piscina no Terraço", "Academia", "Vaga de Garagem"],
     "area": 99.45
   },
