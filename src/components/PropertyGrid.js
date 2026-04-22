@@ -2,17 +2,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import useReveal from '@/hooks/useReveal';
-import { supabase } from '@/lib/supabase';
 import { MapPin, ArrowRight, Loader2, ImageIcon } from 'lucide-react';
 
 // Função utilitária para garantir que a URL da imagem seja válida
 const getValidImageUrl = (img) => {
   if (!img) return '/images/property1.png';
-  // Se for um caminho relativo iniciado em /images, Next.js resolve via public
   if (img.startsWith('/images')) return img;
-  // Se for uma URL completa, retorna ela mesma
   if (img.startsWith('http')) return img;
-  // Fallback para qualquer outro caso
   return '/images/property1.png';
 };
 
@@ -80,12 +76,11 @@ export default function PropertyGrid() {
     let isMounted = true;
     async function fetchProperties() {
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .order('created_at', { ascending: false });
+        // Agora buscamos da nossa API interna que lê o listings.json
+        const res = await fetch('/api/properties');
+        const data = await res.json();
         
-        if (error) throw error;
+        if (data.error) throw new Error(data.error);
         if (isMounted) setList(data || []);
       } catch (err) {
         console.error('Fetch Error:', err);
@@ -102,7 +97,7 @@ export default function PropertyGrid() {
     <div className="loading-container-v4">
       <div className="loading-content">
         <Loader2 className="animate-spin text-yellow-500 mb-4" size={48} />
-        <p>Acessando portfólio imobiliário...</p>
+        <p>Acessando banco de dados local...</p>
       </div>
       <style jsx>{`
         .loading-container-v4 { display: flex; align-items: center; justify-content: center; padding: 10rem 0; background: #fff; }
@@ -116,7 +111,7 @@ export default function PropertyGrid() {
       <div className="container">
         <div className="section-header-v4">
           <h2 className="section-title">Imóveis <span className="text-accent underline-yellow">Destaque</span></h2>
-          <p className="section-subtitle">Exclusividade e curadoria profissional em Imbituba e região. O imóvel ideal para o seu estilo de vida.</p>
+          <p className="section-subtitle">Acesso direto ao portfólio oficial Charles R. Nobre. Exclusividade e transparência.</p>
         </div>
         
         {list.length > 0 ? (
@@ -127,9 +122,9 @@ export default function PropertyGrid() {
                 id={prop.id}
                 image={prop.images?.[0]}
                 title={prop.title}
-                location={`${prop.neighborhood || 'Localização'}, ${prop.city || 'Imbituba'}`}
+                location={`${prop.neighborhood || prop.location?.neighborhood || 'Centro'}, ${prop.city || prop.location?.city || 'Imbituba'}`}
                 price={prop.price}
-                type={prop.category || 'Residencial'}
+                type={prop.category || prop.type}
               />
             ))}
           </div>

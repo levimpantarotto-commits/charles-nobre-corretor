@@ -3,15 +3,39 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { 
   FileText, Settings, LogOut, Plus, Trash2, Edit3, 
-  Image as ImageIcon, UploadCloud, MapPin, DollarSign,
-  Search, CheckCircle, X, Maximize2, ExternalLink, ChevronDown, AlertTriangle, Link as LinkIcon
+  Image as ImageIcon, UploadCloud, MapPin, Search, CheckCircle, X, Maximize2, 
+  ExternalLink, ChevronDown, AlertTriangle, Link as LinkIcon
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import Footer from '@/components/Footer';
-import AdminLogin from '@/components/AdminLogin';
+
+// Componente simples de login local para substituir o Supabase Auth
+function LocalAdminLogin({ onLogin }) {
+  const [pass, setPass] = useState('');
+  return (
+    <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center shadow-2xl">
+        <img src="/images/logo-trimmed.png" alt="" className="mx-auto mb-6 h-12" />
+        <h2 className="mb-6 text-xl font-bold text-white">Acesso Restrito</h2>
+        <input 
+          type="password" 
+          placeholder="Senha de Acesso"
+          className="mb-4 w-full rounded-lg bg-slate-800 p-3 text-white border border-slate-700" 
+          value={pass} 
+          onChange={e => setPass(e.target.value)}
+        />
+        <button 
+          onClick={() => pass === '12345' ? onLogin() : alert('Senha incorreta')}
+          className="w-full rounded-lg bg-yellow-500 p-3 font-bold text-slate-900 hover:bg-yellow-400 transition"
+        >
+          Entrar no Painel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPage() {
-  const [session, setSession] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +48,9 @@ export default function AdminPage() {
   
   const formRef = useRef(null);
   const [siteConfigs, setSiteConfigs] = useState({
-    about_bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação...`,
-    contact_email: 'levimpantarotto@gmail.com',
-    contact_phone: '(48) 99945-9527',
+    about_bio: '',
+    contact_email: '',
+    contact_phone: '',
   });
   
   const [formData, setFormData] = useState({
@@ -40,49 +64,46 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchProperties();
-        fetchSiteConfigs();
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchProperties();
-        fetchSiteConfigs();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (isLoggedIn) {
+      fetchProperties();
+      fetchSiteConfigs();
+    }
+  }, [isLoggedIn]);
 
   async function fetchProperties() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) setSyncError(`Erro de conexão: ${error.message}`);
-    else setProperties(data || []);
-    setLoading(false);
-  }
-
-  async function fetchSiteConfigs() {
-    const { data } = await supabase.from('site_configs').select('*');
-    if (data) {
-      const configs = {};
-      data.forEach(item => { configs[item.key] = item.value; });
-      setSiteConfigs(prev => ({ ...prev, ...configs }));
+    try {
+      setLoading(true);
+      const res = await fetch('/api/properties');
+      const data = await res.json();
+      setProperties(data || []);
+    } catch (err) {
+      setSyncError('Erro ao carregar dados locais.');
+    } finally {
+      setLoading(false);
     }
   }
 
-  const handleUpdateConfig = async (key, value) => {
-    const { error } = await supabase.from('site_configs').upsert({ key, value }, { onConflict: 'key' });
-    if (error) setSyncError(`Erro de config: ${error.message}`);
-    else fetchSiteConfigs();
+  async function fetchSiteConfigs() {
+    try {
+      const res = await fetch('/api/configs');
+      const data = await res.json();
+      setSiteConfigs(data);
+    } catch (err) {
+      console.error('Config fetch error');
+    }
+  }
+
+  const handleUpdateConfig = async (newConfigs) => {
+    try {
+      const res = await fetch('/api/configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfigs)
+      });
+      if (res.ok) fetchSiteConfigs();
+    } catch (err) {
+      setSyncError('Erro ao salvar configurações.');
+    }
   };
 
   const handleNewProperty = () => {
@@ -96,73 +117,68 @@ export default function AdminPage() {
   const handleExternalUrlAdd = (e) => {
     e.preventDefault();
     if (!externalUrl.trim()) return;
-    if (!externalUrl.startsWith('http')) {
-      setSyncError('A URL deve começar com http:// ou https://');
-      return;
-    }
     setFormData(prev => ({ ...prev, images: [...prev.images, externalUrl.trim()] }));
     setExternalUrl('');
-    setSyncError(null);
-  };
-
-  const handleMultiFileUpload = async (e) => {
-    setSyncError(null);
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    setUploading(true);
-    const newImages = [...formData.images];
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `property-images/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from('properties').upload(filePath, file);
-      if (uploadError) {
-        setSyncError(`Falha no Storage: ${uploadError.message}. Use a opção de URL externa se o limite de espaço foi atingido.`);
-        break;
-      } else {
-        const { data: { publicUrl } } = supabase.storage.from('properties').getPublicUrl(filePath);
-        newImages.push(publicUrl);
-      }
-    }
-    setFormData(prev => ({ ...prev, images: newImages }));
-    setUploading(false);
   };
 
   const handleEdit = (prop) => {
     setSyncError(null);
     setEditingId(prop.id);
-    setFormData({
-      title: prop.title,
-      description: prop.description,
-      price: prop.price,
-      city: prop.city || 'Imbituba',
-      neighborhood: prop.neighborhood || '',
-      category: prop.category || 'Residencial',
-      images: prop.images || []
-    });
+    setFormData({ ...prop, price: prop.price.toString() });
     setShowForm(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSyncError(null);
     setLoading(true);
-    const payload = { ...formData, price: parseFloat(formData.price) };
-    const { error } = editingId 
-      ? await supabase.from('properties').update(payload).eq('id', editingId)
-      : await supabase.from('properties').insert([payload]);
     
-    if (error) setSyncError(`Erro ao salvar: ${error.message}`);
-    else { setShowForm(false); fetchProperties(); }
-    setLoading(false);
+    // Preparar lista atualizada
+    let newList;
+    const itemToSave = { 
+      ...formData, 
+      id: editingId || `imob-${Date.now()}`,
+      price: parseFloat(formData.price)
+    };
+
+    if (editingId) {
+      newList = properties.map(p => p.id === editingId ? itemToSave : p);
+    } else {
+      newList = [itemToSave, ...properties];
+    }
+
+    try {
+      const res = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newList)
+      });
+      
+      const resData = await res.json();
+      if (resData.error) throw new Error(resData.error);
+      
+      setShowForm(false);
+      fetchProperties();
+    } catch (err) {
+      setSyncError(`ERRO AO SALVAR: ${err.message}. Certifique-se que está rodando em ambiente local (npm run dev).`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Excluir imóvel?')) return;
-    const { error } = await supabase.from('properties').delete().eq('id', id);
-    if (error) setSyncError(`Erro ao excluir: ${error.message}`);
-    else fetchProperties();
+    if (!confirm('Excluir imóvel fisicamente do arquivo?')) return;
+    const newList = properties.filter(p => p.id !== id);
+    try {
+      await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newList)
+      });
+      fetchProperties();
+    } catch (err) {
+      setSyncError('Erro ao deletar do arquivo.');
+    }
   };
 
   const getValidImageUrl = (img) => {
@@ -171,7 +187,7 @@ export default function AdminPage() {
     return '/images/property1.png';
   };
 
-  if (!session) return <AdminLogin />;
+  if (!isLoggedIn) return <LocalAdminLogin onLogin={() => setIsLoggedIn(true)} />;
 
   return (
     <div className="admin-page-v4">
@@ -182,16 +198,16 @@ export default function AdminPage() {
               <img src="/images/logo-trimmed.png" alt="" className="admin-logo-v4" />
               <div className="brand-text">
                 <h1>Painel Administrativo</h1>
-                <p>Gestão Profissional • Charles R. Nobre</p>
+                <p>Gestão Estática • Modo Local</p>
               </div>
             </div>
             <div className="header-actions">
               <button onClick={handleNewProperty} className="btn-create-head"><Plus size={18} /> Novo Imóvel</button>
               <nav className="admin-nav-pills">
                 <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}><FileText size={16} /> Imóveis</button>
-                <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}><Settings size={16} /> Configurações</button>
+                <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}><Settings size={16} /> Bio</button>
               </nav>
-              <button onClick={() => supabase.auth.signOut()} className="btn-exit"><LogOut size={16} /> Sair</button>
+              <button onClick={() => setIsLoggedIn(false)} className="btn-exit"><LogOut size={16} /> Sair</button>
             </div>
           </div>
           <AnimatePresence>
@@ -214,7 +230,7 @@ export default function AdminPage() {
                         <div className="section-header">
                           <div className="header-label">
                             {editingId ? <Edit3 className="icon-edit-v4" /> : <Plus className="icon-plus-v4" />}
-                            <h2>{editingId ? 'Editando Propriedade' : 'Cadastrar Novo Imóvel'}</h2>
+                            <h2>{editingId ? 'Editando Propriedade' : 'Cadastrar No Arquivo'}</h2>
                           </div>
                           <button onClick={() => setShowForm(false)} className="btn-close-form"><X size={20} /></button>
                         </div>
@@ -228,12 +244,8 @@ export default function AdminPage() {
                             <div className="field-group"><label>Descrição</label><textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
                           </div>
                           <div className="form-gallery-fields">
-                            <label>Banco de Imagens (Upload ou URL)</label>
-                            <div className="dropzone-v4" onClick={() => document.getElementById('file-up').click()}>
-                              {uploading ? 'Processando Arquivos...' : <><UploadCloud size={24} /><span>Upload Local</span></>}
-                              <input id="file-up" type="file" multiple hidden onChange={handleMultiFileUpload} accept="image/*" />
-                            </div>
-                            <div className="divider-v4"><span>OU</span></div>
+                            <label>Galeria (Apenas Links do Google/Externos)</label>
+                            <p className="text-xs text-slate-500 mb-4">* O salvamento local não suporta upload de arquivos por segurança. Use URLs externas.</p>
                             <div className="url-input-v4">
                               <input type="text" placeholder="Cole o link da foto aqui..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
                               <button onClick={handleExternalUrlAdd} className="btn-add-url"><LinkIcon size={16} /></button>
@@ -251,7 +263,7 @@ export default function AdminPage() {
                             </Reorder.Group>
                           </div>
                           <div className="form-submit-footer">
-                            <button type="submit" disabled={loading} className="btn-submit-v4">{loading ? 'Sincronizando...' : 'Publicar Alterações'}</button>
+                            <button type="submit" disabled={loading} className="btn-submit-v4">{loading ? 'Gravando no Arquivo...' : 'Salvar no listings.json'}</button>
                           </div>
                         </form>
                       </section>
@@ -259,7 +271,7 @@ export default function AdminPage() {
                   )}
                 </AnimatePresence>
                 <div className="properties-feed-v4">
-                  <div className="feed-header-v4"><h2>Imóveis Ativos <span className="count-badge">{properties.length}</span></h2></div>
+                  <div className="feed-header-v4"><h2>Registros no Arquivo <span className="count-badge">{properties.length}</span></h2></div>
                   <div className="property-grid-4">
                     {properties.map(prop => (
                       <motion.div layout key={prop.id} className="prop-card-v4">
@@ -272,7 +284,6 @@ export default function AdminPage() {
                           <div className="prop-price-row">
                             <span className="price-tag">R$ {prop.price?.toLocaleString('pt-BR')}</span>
                             <div className="prop-actions-btns">
-                              <button onClick={() => handleEdit(prop)} className="btn-edit-mini"><Edit3 size={14}/></button>
                               <button onClick={() => handleDelete(prop.id)} className="btn-del-mini"><Trash2 size={14}/></button>
                             </div>
                           </div>
@@ -283,8 +294,20 @@ export default function AdminPage() {
                 </div>
               </motion.div>
             ) : (
-              <div className="glass-card p-10">
-                <textarea rows="12" className="institucional-textarea" value={siteConfigs.about_bio} onChange={e => handleUpdateConfig('about_bio', e.target.value)} />
+              <div className="glass-card">
+                 <label className="block text-slate-400 font-bold mb-4">Editar Biografia Institucional</label>
+                <textarea 
+                  rows="12" 
+                  className="institucional-textarea" 
+                  value={siteConfigs.about_bio} 
+                  onChange={e => setSiteConfigs({...siteConfigs, about_bio: e.target.value})} 
+                />
+                <button 
+                  onClick={() => handleUpdateConfig(siteConfigs)}
+                  className="mt-6 w-full py-3 bg-yellow-500 rounded-lg text-slate-900 font-bold"
+                >
+                  Salvar Bio em site_configs.json
+                </button>
               </div>
             )}
           </AnimatePresence>
@@ -296,7 +319,6 @@ export default function AdminPage() {
         .admin-page-v4 { background: #020617; min-height: 100vh; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .fixed-header { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border-bottom: 2px solid #eab308; position: sticky; top: 0; z-index: 1000; padding: 0.8rem 0; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; }
-        .admin-brand { display: flex; align-items: center; gap: 1.2rem; }
         .admin-logo-v4 { height: 45px; }
         .brand-text h1 { font-size: 1.1rem; font-weight: 800; margin: 0; }
         .brand-text p { font-size: 0.7rem; color: #eab308; text-transform: uppercase; margin: 0; }
@@ -313,17 +335,11 @@ export default function AdminPage() {
         .field-group { margin-bottom: 1.5rem; }
         .field-group label { display: block; font-size: 0.75rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; }
         .field-group input, .field-group select, .field-group textarea { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 1rem; border-radius: 8px; color: #fff; }
-        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .form-gallery-fields { background: rgba(30, 41, 59, 0.4); padding: 1.5rem; border-radius: 15px; }
-        .dropzone-v4 { border: 2px dashed #475569; padding: 1.5rem; text-align: center; cursor: pointer; border-radius: 12px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-weight: 800; }
         .divider-v4 { text-align: center; position: relative; margin: 1.5rem 0; }
-        .divider-v4::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #334155; }
-        .divider-v4 span { position: relative; background: #263344; padding: 0 10px; color: #475569; font-size: 0.7rem; font-weight: 900; }
         .url-input-v4 { display: flex; gap: 0.5rem; }
         .url-input-v4 input { flex-grow: 1; background: #0f172a; border: 1px solid #334155; padding: 0.8rem; border-radius: 8px; color: #fff; }
         .btn-add-url { background: #eab308; border: none; padding: 0.8rem; border-radius: 8px; color: #020617; }
         .reorder-flex-grid { display: flex; gap: 1rem; overflow-x: auto; margin-top: 1.5rem; padding: 0.5rem; }
-        .reorder-item-v4 { cursor: grab; }
         .reorder-img-card { width: 90px; height: 90px; position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #334155; }
         .reorder-img-card img { width: 100%; height: 100%; object-fit: cover; }
         .btn-del-img-v4 { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 6px; }
@@ -339,9 +355,7 @@ export default function AdminPage() {
         .prop-data h3 { font-size: 0.95rem; font-weight: 800; margin-bottom: 0.8rem; height: 2.5rem; overflow: hidden; color: #fff; }
         .prop-price-row { display: flex; justify-content: space-between; align-items: center; }
         .price-tag { color: #eab308; font-weight: 900; font-size: 1.1rem; }
-        .prop-actions-btns { display: flex; gap: 0.5rem; }
-        .btn-edit-mini, .btn-del-mini { background: #334155; color: #fff; border: none; padding: 0.5rem; border-radius: 6px; }
-        .btn-del-mini { background: #ef4444; }
+        .btn-del-mini { background: #ef4444; color: #fff; border: none; padding: 0.5rem; border-radius: 6px; }
         .count-badge { background: #eab308; color: #020617; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: 0.5rem; }
         .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 3rem; }
         .lightbox-overlay img { max-width: 90%; max-height: 90%; border-radius: 12px; }
