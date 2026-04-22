@@ -14,10 +14,26 @@ export default function Hero() {
     '/images/hero-whale.png'
   ];
 
+  const [heroData, setHeroData] = useState({
+    title: 'Realizando sonhos no litoral de Santa Catarina',
+    subtitle: 'Especialista em propriedades exclusivas em Imbituba, Garopaba e Imaruí. Consultoria personalizada para o seu melhor investimento.'
+  });
+
   useEffect(() => {
+    async function fetchHero() {
+      const { data } = await supabase.from('site_configs').select('key, value');
+      if (data) {
+        const title = data.find(c => c.key === 'hero_title')?.value;
+        const subtitle = data.find(c => c.key === 'hero_subtitle')?.value;
+        if (title) setHeroData(prev => ({ ...prev, title }));
+        if (subtitle) setHeroData(prev => ({ ...prev, subtitle }));
+      }
+    }
+    fetchHero();
+
     const timer = setInterval(() => {
       setCurrentImage((prev) => (prev + 1) % images.length);
-    }, 6000); // 6 seconds per slide
+    }, 6000);
     return () => clearInterval(timer);
   }, [images.length]);
 
@@ -38,13 +54,10 @@ export default function Hero() {
         ref={revealRef} 
         className={`container hero-content reveal ${isVisible ? 'reveal-visible' : ''}`}
       >
-        <h1 className="hero-title">
-          Realizando sonhos no <br />
-          <span className="text-accent">litoral de Santa Catarina</span>
+        <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: heroData.title.replace('litoral', '<br /><span className="text-accent">litoral') }}>
         </h1>
         <p className="hero-subtitle">
-          Especialista em propriedades exclusivas em Imbituba, Garopaba e Imaruí. 
-          Consultoria personalizada para o seu melhor investimento.
+          {heroData.subtitle}
         </p>
         <div className="hero-search-wrap">
           <SearchBar />

@@ -1,8 +1,27 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import useReveal from '@/hooks/useReveal';
 
 export default function About() {
   const [imgRef, imgVisible] = useReveal();
   const [contentRef, contentVisible] = useReveal();
+  const [aboutData, setAboutData] = useState({
+    bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação — meu trabalho é conectar pessoas a espaços que fazem sentido para suas vidas.\n\nMinha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária. Lugares onde a integração entre natureza, design e bem-estar não é tendência, mas essência. Essa vivência me trouxe repertório, sensibilidade estética e uma compreensão mais profunda do que realmente torna um imóvel especial.\n\nAo mesmo tempo, tenho um conhecimento enraizado na região de Imbituba e arredores — conheço cada detalhe que não aparece nos mapas: os melhores pontos de pôr do sol, as áreas com maior potencial de valorização, a dinâmica das praias, do vento, do turismo e da cultura local.\n\nMeu diferencial está justamente nessa combinação: visão global com atuação local. Consigo enxergar oportunidades com um olhar estratégico, mas também sensorial — aquele que entende o valor de uma casa com vista para o mar, de uma cabana integrada à natureza ou de um terreno com energia única.\n\nTrabalho de forma personalizada, com atenção aos detalhes e foco em criar conexões reais entre pessoas e propriedades. Mais do que vender imóveis, facilito escolhas que impactam estilo de vida, investimento e bem-estar.\n\nSe você busca mais do que um imóvel — busca um lugar com significado — estou aqui para te guiar.`,
+    creci: '37177'
+  });
+
+  useEffect(() => {
+    async function fetchAbout() {
+      const { data } = await supabase.from('site_configs').select('key, value');
+      if (data) {
+        const bio = data.find(c => c.key === 'about_bio')?.value;
+        const creci = data.find(c => c.key === 'about_creci')?.value;
+        if (bio) setAboutData(prev => ({ ...prev, bio }));
+        if (creci) setAboutData(prev => ({ ...prev, creci }));
+      }
+    }
+    fetchAbout();
+  }, []);
 
   return (
     <section id="about" className="section-padding about-section">
@@ -20,25 +39,12 @@ export default function About() {
         >
           <span className="about-tag">Seu Parceiro de Negócios</span>
           <h2 className="about-title">Sobre <span className="text-accent">Charles R. Nobre</span></h2>
-          <span className="creci-badge">CRECI: 37177</span>
-          <p className="about-text">
-            Sou corretor de imóveis com uma visão que vai além da simples negociação — meu trabalho é conectar pessoas a espaços que fazem sentido para suas vidas.
-          </p>
-          <p className="about-text">
-            Minha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária. Lugares onde a integração entre natureza, design e bem-estar não é tendência, mas essência. Essa vivência me trouxe repertório, sensibilidade estética e uma compreensão mais profunda do que realmente torna um imóvel especial.
-          </p>
-          <p className="about-text">
-            Ao mesmo tempo, tenho um conhecimento enraizado na região de Imbituba e arredores — conheço cada detalhe que não aparece nos mapas: os melhores pontos de pôr do sol, as áreas com maior potencial de valorização, a dinâmica das praias, do vento, do turismo e da cultura local.
-          </p>
-          <p className="about-text">
-            Meu diferencial está justamente nessa combinação: <strong>visão global com atuação local</strong>. Consigo enxergar oportunidades com um olhar estratégico, mas também sensorial — aquele que entende o valor de uma casa com vista para o mar, de uma cabana integrada à natureza ou de um terreno com energia única.
-          </p>
-          <p className="about-text">
-            Trabalho de forma personalizada, com atenção aos detalhes e foco em criar conexões reais entre pessoas e propriedades. Mais do que vender imóveis, facilito escolhas que impactam estilo de vida, investimento e bem-estar.
-          </p>
-          <p className="about-text">
-            Se você busca mais do que um imóvel — busca um lugar com significado — estou aqui para te guiar.
-          </p>
+          <span className="creci-badge">CRECI: {aboutData.creci}</span>
+          <div className="about-text-container">
+            {aboutData.bio.split('\n\n').map((paragraph, idx) => (
+              <p key={idx} className="about-text">{paragraph}</p>
+            ))}
+          </div>
           <div className="about-stats">
             <div className="stat-item">
               <span className="stat-number">15+</span>

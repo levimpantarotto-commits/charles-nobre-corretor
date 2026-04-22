@@ -1,9 +1,33 @@
-'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { FaInstagram, FaFacebook, FaWhatsapp, FaEnvelope, FaMapMarkerAlt, FaPhone } from 'react-icons/fa';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [footerData, setFooterData] = useState({
+    email: 'levimpantarotto@gmail.com',
+    phone: '(48) 99945-9527',
+    creci: '37177',
+    instagram: '#',
+    facebook: '#',
+    whatsapp: 'https://wa.me/5548999459527'
+  });
+
+  useEffect(() => {
+    async function fetchFooter() {
+      const { data } = await supabase.from('site_configs').select('key, value');
+      if (data) {
+        const email = data.find(c => c.key === 'contact_email')?.value;
+        const phone = data.find(c => c.key === 'contact_phone')?.value;
+        const creci = data.find(c => c.key === 'about_creci')?.value;
+        if (email) setFooterData(prev => ({ ...prev, email }));
+        if (phone) setFooterData(prev => ({ ...prev, phone }));
+        if (creci) setFooterData(prev => ({ ...prev, creci }));
+      }
+    }
+    fetchFooter();
+  }, []);
 
   return (
     <footer className="footer" id="contact">
@@ -19,9 +43,9 @@ export default function Footer() {
             </div>
             <p className="footer-tagline">Consultoria Imobiliária de Alto Padrão no Litoral Sul de SC. Especialista em Imbituba, Garopaba e Imaruí.</p>
             <div className="social-links">
-              <a href="#" aria-label="Instagram"><FaInstagram /></a>
-              <a href="#" aria-label="Facebook"><FaFacebook /></a>
-              <a href="#" aria-label="WhatsApp"><FaWhatsapp /></a>
+              <a href={footerData.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram"><FaInstagram /></a>
+              <a href={footerData.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><FaFacebook /></a>
+              <a href={footerData.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><FaWhatsapp /></a>
             </div>
           </div>
 
@@ -39,8 +63,8 @@ export default function Footer() {
             <h4>Contato</h4>
             <ul>
               <li><FaMapMarkerAlt /> <span>Imbituba, SC - Brasil</span></li>
-              <li><FaPhone /> <span>(48) 99945-9527</span></li>
-              <li><FaEnvelope /> <span>levimpantarotto@gmail.com</span></li>
+              <li><FaPhone /> <span>{footerData.phone}</span></li>
+              <li><FaEnvelope /> <span>{footerData.email}</span></li>
             </ul>
           </div>
         </div>
@@ -48,7 +72,7 @@ export default function Footer() {
         <div className="footer-bottom">
           <p>&copy; {currentYear} Charles R. Nobre. Todos os direitos reservados. Projeto de Elite.</p>
           <div className="footer-legal">
-            <span>CRECI: 37177</span>
+            <span>CRECI: {footerData.creci}</span>
           </div>
         </div>
       </div>

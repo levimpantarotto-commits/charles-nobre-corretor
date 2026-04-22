@@ -119,9 +119,18 @@ export default function PropertyGrid() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // For now, we use the local JSON which is easier for the user to update
-    setList(listings);
-    setLoading(false);
+    async function fetchProperties() {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) console.error('Error fetching properties:', error);
+      else setList(data || []);
+      setLoading(false);
+    }
+    
+    fetchProperties();
   }, []);
 
 
