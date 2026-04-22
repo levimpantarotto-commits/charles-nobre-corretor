@@ -10,26 +10,53 @@ import Footer from '@/components/Footer';
 
 // Componente de Login Simples e Profissional
 function LocalAdminLogin({ onLogin }) {
+  const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  
+  const handleAttempt = () => {
+    // Validação local simplificada para manter custo zero
+    if (email === 'charles@nobre.com' && pass === 'premium') {
+      onLogin();
+    } else {
+      alert('Credenciais incorretas para acesso local.');
+    }
+  };
+
   return (
-    <div className="flex h-screen items-center justify-center bg-[#020617]">
-      <div className="w-full max-w-sm rounded-[20px] border border-slate-800 bg-slate-900/50 p-10 text-center shadow-2xl backdrop-blur-xl">
-        <img src="/images/logo-trimmed.png" alt="" className="mx-auto mb-8 h-12" />
-        <h2 className="mb-8 text-xl font-black text-white uppercase tracking-tighter">Acesso Administrativo</h2>
-        <input 
-          type="password" 
-          placeholder="Código de Acesso"
-          className="mb-4 w-full rounded-xl bg-slate-950 p-4 text-white border border-slate-800 focus:border-yellow-500 outline-none transition-all" 
-          value={pass} 
-          onChange={e => setPass(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (pass === '12345' ? onLogin() : alert('Acesso negado'))}
-        />
+    <div className="flex h-screen items-center justify-center bg-[#020617] p-4">
+      <div className="w-full max-w-sm rounded-[30px] border border-slate-800 bg-slate-900/40 p-10 text-center shadow-2xl backdrop-blur-2xl">
+        <img src="/images/logo-trimmed.png" alt="" className="mx-auto mb-10 h-10 object-contain" />
+        <h2 className="mb-8 text-xs font-black text-yellow-500 uppercase tracking-[0.2em]">Acesso de Elite</h2>
+        <div className="space-y-4 mb-8 text-left">
+          <div className="field">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">E-mail</label>
+            <input 
+              type="email" 
+              placeholder="seu@email.com"
+              className="w-full rounded-2xl bg-slate-950 p-4 text-white border border-slate-800 focus:border-yellow-500 outline-none transition-all placeholder:text-slate-700" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Senha</label>
+            <input 
+              type="password" 
+              placeholder="••••••••"
+              className="w-full rounded-2xl bg-slate-950 p-4 text-white border border-slate-800 focus:border-yellow-500 outline-none transition-all placeholder:text-slate-700" 
+              value={pass} 
+              onChange={e => setPass(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAttempt()}
+            />
+          </div>
+        </div>
         <button 
-          onClick={() => pass === '12345' ? onLogin() : alert('Acesso negado')}
-          className="w-full rounded-xl bg-yellow-500 p-4 font-black text-slate-950 hover:bg-yellow-400 transition-all uppercase text-sm tracking-widest"
+          onClick={handleAttempt}
+          className="w-full rounded-2xl bg-yellow-500 p-5 font-black text-slate-950 hover:bg-white transition-all uppercase text-xs tracking-widest shadow-lg shadow-yellow-500/10"
         >
           Entrar no Painel
         </button>
+        <p className="mt-8 text-[10px] text-slate-600 font-bold uppercase tracking-widest">Charles R. Nobre • v4.9 Local</p>
       </div>
     </div>
   );
@@ -325,8 +352,20 @@ export default function AdminPage() {
         .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 6px; border-radius: 6px; }
 
         /* MARKETPLACE 3 COLUNAS */
-        .marketplace-form-overlay { position: absolute; inset: 0; background: #020617; z-index: 50; overflow: hidden; }
-        .marketplace-grid-3 { height: 100%; display: grid; grid-template-columns: 280px 1fr 380px; }
+        .marketplace-form-overlay { position: fixed; inset: 0; background: #020617; z-index: 2000; overflow-y: auto; overflow-x: hidden; }
+        .marketplace-grid-3 { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr 380px; }
+        
+        @media (max-width: 1200px) {
+          .marketplace-grid-3 { grid-template-columns: 250px 1fr; }
+          .col-form-details { grid-column: span 2; border-left: none; border-top: 1px solid #1e293b; }
+        }
+
+        @media (max-width: 768px) {
+          .marketplace-grid-3 { grid-template-columns: 1fr; }
+          .col-thumbnails { order: 2; border-right: none; }
+          .col-preview { order: 1; height: 300px; padding: 1rem; }
+          .col-form-details { order: 3; }
+        }
         
         /* COLUNA 1: THUMBS */
         .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
