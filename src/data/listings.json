@@ -24,17 +24,17 @@
   },
   {
     "id": "imob-house-1",
-    "title": "Residência Boutique - Encantos do Sul",
-    "description": "Uma experiência de morar única onde o design rústico-contemporâneo encontra a tranquilidade da natureza. Esta residência se destaca pelo seu amplo deck de madeira que serve como um mirante privativo para o horizonte. Com ambientes amplos e integrados, é o refúgio perfeito para quem busca privacidade e uma conexão autêntica com o estilo de vida litorâneo.",
+    "title": "Refúgio Arroio do Rosa - Conforto e Natureza",
+    "description": "Viver com sentimento de campo a alguns minutos do centro da cidade e praias. Nesta casa, cada detalhe foi pensado para oferecer conforto e praticidade. Localizada no charmoso bairro Arroio do Rosa, em Imbituba, SC, este imóvel é um verdadeiro achado! Com 144 m² de área privativa, a casa oferece espaço de sobra para sua família desfrutar de momentos inesquecíveis. São três dormitórios acolhedores, incluindo uma suíte elegante.\n\nA sala ampla e bem iluminada é ideal para receber amigos e familiares, enquanto a cozinha equipada com um forno a lenha e um de pizza torna qualquer refeição um evento. O terreno generoso de 500 m² proporciona liberdade para quem sonha com um jardim ou espaço para uma piscina. E não podemos esquecer da bela varanda com churrasqueira e uma vista privilegiada para o pôr do sol.",
     "location": {
-      "city": "Garopaba",
-      "neighborhood": "Região Costeira",
+      "city": "Imbituba",
+      "neighborhood": "Arroio do Rosa",
       "state": "SC"
     },
-    "price": 0,
+    "price": 650000,
     "type": "Casa",
     "intent": "venda",
-    "category": "Residencial",
+    "category": "Alto Padrão",
     "images": [
       "/images/house-1/house-1-1.jpg",
       "/images/house-1/house-1-2.jpg",
@@ -44,7 +44,7 @@
       "/images/house-1/house-1-6.jpg",
       "/images/house-1/house-1-7.jpg"
     ],
-    "features": ["Deck Panorâmico", "Design Exclusivo", "Vista Permanente", "Ambientes Integrados", "Área Verde Preservada"],
-    "area": 150
+    "features": ["Suíte Master", "Forno a Lenha / Pizza", "Amplo Terreno (500m²)", "Varanda Gourmet", "Vista Pôr do Sol", "Área de 144m²"],
+    "area": 144
   }
 ]
