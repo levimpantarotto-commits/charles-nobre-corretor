@@ -102,27 +102,37 @@ export default function AdminPage() {
       });
       if (res.ok) fetchSiteConfigs();
     } catch (err) {
-      setSyncError('Erro ao salvar configurações.');
+      console.error('Erro ao salvar configurações.');
     }
   };
 
   const handleNewProperty = () => {
     setEditingId(null);
-    setSyncError(null);
     setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
     setShowForm(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
+  // Conversor Inteligente de Links do Google Drive
+  const convertGoogleDriveLink = (url) => {
+    if (url.includes('drive.google.com')) {
+      const match = url.match(/\/d\/(.+?)\/(view|edit)/) || url.match(/id=(.+?)(&|$)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+      }
+    }
+    return url;
+  };
+
   const handleExternalUrlAdd = (e) => {
     e.preventDefault();
     if (!externalUrl.trim()) return;
-    setFormData(prev => ({ ...prev, images: [...prev.images, externalUrl.trim()] }));
+    const finalUrl = convertGoogleDriveLink(externalUrl.trim());
+    setFormData(prev => ({ ...prev, images: [...prev.images, finalUrl] }));
     setExternalUrl('');
   };
 
   const handleEdit = (prop) => {
-    setSyncError(null);
     setEditingId(prop.id);
     setFormData({ ...prop, price: prop.price.toString() });
     setShowForm(true);
@@ -210,13 +220,6 @@ export default function AdminPage() {
               <button onClick={() => setIsLoggedIn(false)} className="btn-exit"><LogOut size={16} /> Sair</button>
             </div>
           </div>
-          <AnimatePresence>
-            {syncError && (
-              <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="container mt-4">
-                <div className="sync-error-banner"><AlertTriangle size={20} /><span>{syncError}</span><button onClick={() => setSyncError(null)}><X size={16} /></button></div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </header>
 
         <div className="container content-push">
@@ -244,10 +247,10 @@ export default function AdminPage() {
                             <div className="field-group"><label>Descrição</label><textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
                           </div>
                           <div className="form-gallery-fields">
-                            <label>Galeria (Apenas Links do Google/Externos)</label>
-                            <p className="text-xs text-slate-500 mb-4">* O salvamento local não suporta upload de arquivos por segurança. Use URLs externas.</p>
+                            <label>Banco de Imagens (Google Drive ou Links Externos)</label>
+                            <p className="text-xs text-yellow-500 mb-4">* Cole o link de compartilhamento do Google Drive abaixo. O sistema converterá automaticamente.</p>
                             <div className="url-input-v4">
-                              <input type="text" placeholder="Cole o link da foto aqui..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
+                              <input type="text" placeholder="Cole o link do Google Drive aqui..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
                               <button onClick={handleExternalUrlAdd} className="btn-add-url"><LinkIcon size={16} /></button>
                             </div>
                             <Reorder.Group axis="x" values={formData.images} onReorder={imgs => setFormData({...formData, images: imgs})} className="reorder-flex-grid">
