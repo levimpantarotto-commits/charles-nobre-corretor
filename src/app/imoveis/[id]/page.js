@@ -1,18 +1,28 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLead } from '@/context/LeadContext';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import listings from '@/data/listings.json';
-import { IoChevronBack, IoChevronForward } from 'react-icons/io5';
+import { IoChevronBack, IoChevronForward, IoClose, IoExpandOutline } from 'react-icons/io5';
 
 export default function PropertyDetail() {
   const params = useParams();
   const { openLeadModal } = useLead();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
   const property = listings.find(p => p.id === params.id);
+
+  useEffect(() => {
+    if (isLightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isLightboxOpen]);
 
   if (!property) {
     return (
@@ -27,13 +37,18 @@ export default function PropertyDetail() {
     );
   }
 
-  const nextImage = () => {
+  const nextImage = (e) => {
+    e?.stopPropagation();
     setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
   };
 
-  const prevImage = () => {
+  const prevImage = (e) => {
+    e?.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
   };
+
+  const openLightbox = () => setIsLightboxOpen(true);
+  const closeLightbox = () => setIsLightboxOpen(false);
 
   const formattedPrice = property.price > 0 
     ? `R$ ${property.price.toLocaleString('pt-BR')}`
@@ -58,13 +73,21 @@ export default function PropertyDetail() {
           </div>
 
           <div className="property-gallery-container">
-            <div className="property-gallery">
-              <div className="main-image" style={{ backgroundImage: `url(${property.images[currentImageIndex]})` }}>
+            <div className="property-gallery" onClick={openLightbox}>
+              <div className="main-image-wrapper">
+                <img 
+                  src={property.images[currentImageIndex]} 
+                  alt={property.title} 
+                  className="main-display-img"
+                />
+                <div className="expand-hint">
+                  <IoExpandOutline /> Clique para ampliar
+                </div>
                 {property.images.length > 1 && (
-                  <>
-                    <button className="nav-btn prev" onClick={prevImage}><IoChevronBack /></button>
-                    <button className="nav-btn next" onClick={nextImage}><IoChevronForward /></button>
-                  </>
+                  <div className="gallery-nav-overlay">
+                    <button className="nav-btn-overlay prev" onClick={prevImage}><IoChevronBack /></button>
+                    <button className="nav-btn-overlay next" onClick={nextImage}><IoChevronForward /></button>
+                  </div>
                 )}
               </div>
             </div>
@@ -120,6 +143,24 @@ export default function PropertyDetail() {
         </div>
       </section>
 
+      {/* Lightbox Modal */}
+      {isLightboxOpen && (
+        <div className="lightbox-overlay" onClick={closeLightbox}>
+          <button className="lightbox-close" onClick={closeLightbox}><IoClose /></button>
+          <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+            <img src={property.images[currentImageIndex]} alt="Property full view" className="lightbox-img" />
+            
+            {property.images.length > 1 && (
+              <div className="lightbox-controls">
+                <button className="l-btn prev" onClick={prevImage}><IoChevronBack /></button>
+                <div className="counter">{currentImageIndex + 1} / {property.images.length}</div>
+                <button className="l-btn next" onClick={nextImage}><IoChevronForward /></button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <Footer />
 
       <style jsx>{`
@@ -132,22 +173,24 @@ export default function PropertyDetail() {
         .region-tag { background: #f0f7ff; color: #0056b3; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1px solid #cce5ff; }
         
         .property-gallery-container { margin-bottom: 3rem; }
-        .property-gallery { height: 600px; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); position: relative; }
-        .main-image { width: 100%; height: 100%; background-size: cover; background-position: center; transition: background-image 0.3s ease-in-out; display: flex; align-items: center; justify-content: space-between; }
-        
-        .nav-btn { background: rgba(0,0,0,0.4); color: white; border: none; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; transition: background 0.3s; pointer-events: auto; z-index: 10; }
-        .nav-btn:hover { background: var(--secondary); color: var(--primary); }
-        .prev { border-radius: 0 4px 4px 0; }
-        .next { border-radius: 4px 0 0 4px; }
+        .property-gallery { height: 600px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); position: relative; cursor: zoom-in; background: #eee; }
+        .main-image-wrapper { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        .main-display-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .property-gallery:hover .main-display-img { transform: scale(1.02); }
 
-        .gallery-thumbs { display: flex; gap: 1rem; margin-top: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
-        .thumb { width: 120px; height: 80px; background-size: cover; background-position: center; border-radius: 4px; cursor: pointer; opacity: 0.6; transition: all 0.3s; border: 2px solid transparent; flex-shrink: 0; }
+        .expand-hint { position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(0,0,0,0.6); color: white; padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; pointer-events: none; z-index: 5; }
+
+        .gallery-nav-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; pointer-events: none; }
+        .nav-btn-overlay { pointer-events: auto; background: rgba(255,255,255,0.2); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; transition: all 0.3s; backdrop-filter: blur(5px); }
+        .nav-btn-overlay:hover { background: var(--secondary); color: var(--primary); }
+
+        .gallery-thumbs { display: flex; gap: 0.75rem; margin-top: 1rem; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: thin; }
+        .thumb { width: 120px; height: 80px; background-size: cover; background-position: center; border-radius: 6px; cursor: pointer; opacity: 0.6; transition: all 0.3s; border: 3px solid transparent; flex-shrink: 0; }
         .thumb:hover { opacity: 0.9; }
-        .thumb.active { opacity: 1; border-color: var(--secondary); transform: scale(1.05); }
+        .thumb.active { opacity: 1; border-color: var(--secondary); transform: translateY(-3px); }
 
         .property-grid-layout { display: grid; grid-template-columns: 1fr 380px; gap: 4rem; }
-        
-        .features-strip { display: flex; gap: 2rem; padding: 2rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 3rem; flex-wrap: wrap; }
+        .features-strip { display: flex; gap: 2rem; padding: 2rem; background: #f9f9f9; border-radius: 12px; margin-bottom: 3rem; flex-wrap: wrap; border: 1px solid #f0f0f0; }
         .feature { display: flex; flex-direction: column; }
         .feature strong { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
         .feature span { font-weight: 600; color: var(--primary); font-size: 1.1rem; }
@@ -155,22 +198,36 @@ export default function PropertyDetail() {
         .description h2 { font-family: 'Cinzel', serif; margin-bottom: 1.5rem; color: var(--primary); }
         .description p { line-height: 1.8; color: var(--text-muted); font-size: 1.1rem; white-space: pre-wrap; }
 
-        .price-card { background: var(--primary); padding: 2.5rem; border-radius: 8px; color: var(--white); position: sticky; top: 120px; }
+        .price-card { background: var(--primary); padding: 2.5rem; border-radius: 12px; color: var(--white); position: sticky; top: 120px; box-shadow: 0 15px 35px rgba(10, 20, 47, 0.2); }
         .price-card .label { font-size: 0.8rem; text-transform: uppercase; opacity: 0.7; letter-spacing: 2px; display: block; margin-bottom: 0.5rem; }
         .price-card .price { font-size: 2.2rem; font-family: 'Cinzel', serif; margin-bottom: 2rem; color: var(--secondary); }
         
-        .btn-contact-full { width: 100%; background: var(--secondary); color: var(--primary); border: none; padding: 1.25rem; font-weight: 700; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; transition: var(--transition); }
-        .btn-contact-full:hover { background: var(--white); transform: translateY(-3px); }
+        .btn-contact-full { width: 100%; background: var(--secondary); color: var(--primary); border: none; padding: 1.25rem; font-weight: 700; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; transition: var(--transition); border-radius: 4px; }
+        .btn-contact-full:hover { background: var(--white); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); }
 
-        .creci-box { margin-top: 2rem; padding: 1.5rem; border: 1px solid #eee; border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+        .creci-box { margin-top: 2rem; padding: 1.5rem; border: 1px solid #eee; border-radius: 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem; background: #fcfcfc; }
+
+        /* Lightbox Styles */
+        .lightbox-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .lightbox-close { position: absolute; top: 2rem; right: 2rem; background: none; border: none; color: white; font-size: 3rem; cursor: pointer; transition: color 0.3s; z-index: 10001; }
+        .lightbox-close:hover { color: var(--secondary); }
+        .lightbox-content { position: relative; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; align-items: center; }
+        .lightbox-img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        
+        .lightbox-controls { display: flex; align-items: center; gap: 2rem; margin-top: 2rem; color: white; }
+        .l-btn { background: rgba(255,255,255,0.1); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; transition: all 0.3s; }
+        .l-btn:hover { background: var(--secondary); color: var(--primary); }
+        .counter { font-family: 'Cinzel', serif; font-size: 1.2rem; min-width: 80px; text-align: center; color: var(--secondary); }
 
         @media (max-width: 992px) {
           .property-grid-layout { grid-template-columns: 1fr; }
           .property-sidebar { position: static; }
           .price-card { position: static; }
           .property-gallery { height: 400px; }
-          .property-header h1 { font-size: 2rem; }
+          .property-header h1 { font-size: 2.2rem; }
           .location-row { flex-direction: column; align-items: flex-start; }
+          .lightbox-controls { gap: 1rem; }
+          .l-btn { width: 45px; height: 45px; font-size: 1.5rem; }
         }
       `}</style>
     </main>
