@@ -14,11 +14,11 @@ function LocalAdminLogin({ onLogin }) {
   const [pass, setPass] = useState('');
   
   const handleAttempt = () => {
-    // Validação local personalizada para o Levi
-    if (email === 'levimpantarotto@gmail.com' && pass === 'elite') {
+    // Validação local com as credenciais padrão do Charles/Levi
+    if (email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') {
       onLogin();
     } else {
-      alert('Credenciais incorretas para acesso local.');
+      alert('Credenciais incorretas para este painel local.');
     }
   };
 
@@ -26,46 +26,48 @@ function LocalAdminLogin({ onLogin }) {
     <div style={{
       display: 'flex',
       height: '100vh',
+      width: '100vw',
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#020617',
-      padding: '1rem',
-      fontFamily: 'Inter, sans-serif'
+      position: 'fixed',
+      inset: 0,
+      zIndex: 9999,
+      fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '400px',
-        borderRadius: '30px',
-        border: '1px solid #1e293b',
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        padding: '2.5rem',
+        maxWidth: '420px',
+        borderRadius: '40px',
+        border: '1px solid rgba(234, 179, 8, 0.1)',
+        backgroundColor: '#0f172a',
+        padding: '3.5rem',
         textAlign: 'center',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(20px)',
+        boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.6)',
         color: '#fff'
       }}>
-        <img src="/images/logo-trimmed.png" alt="" style={{ height: '40px', margin: '0 auto 2.5rem', objectFit: 'contain' }} />
-        <h2 style={{ marginBottom: '2rem', fontSize: '0.7rem', fontWeight: 900, color: '#eab308', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-          Acesso de Elite Local
+        <img src="/images/logo-trimmed.png" alt="" style={{ height: '50px', margin: '0 auto 2.5rem', objectFit: 'contain' }} />
+        <h2 style={{ marginBottom: '2.5rem', fontSize: '0.65rem', fontWeight: 900, color: '#eab308', textTransform: 'uppercase', letterSpacing: '0.3em' }}>
+          Painel Charles R. Nobre
         </h2>
         
         <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginLeft: '0.5rem', marginBottom: '0.5rem', display: 'block' }}>E-mail</label>
+          <div style={{ marginBottom: '1.2rem' }}>
+            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>E-mail Administrativo</label>
             <input 
               type="email" 
               placeholder="seu@email.com"
-              style={{ width: '100%', borderRadius: '15px', backgroundColor: '#020617', padding: '1rem', color: '#fff', border: '1px solid #1e293b', outline: 'none' }} 
+              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }} 
               value={email} 
               onChange={e => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label style={{ fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginLeft: '0.5rem', marginBottom: '0.5rem', display: 'block' }}>Senha</label>
+            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>Senha de Acesso</label>
             <input 
               type="password" 
               placeholder="••••••••"
-              style={{ width: '100%', borderRadius: '15px', backgroundColor: '#020617', padding: '1rem', color: '#fff', border: '1px solid #1e293b', outline: 'none' }} 
+              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }} 
               value={pass} 
               onChange={e => setPass(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAttempt()}
@@ -75,12 +77,12 @@ function LocalAdminLogin({ onLogin }) {
 
         <button 
           onClick={handleAttempt}
-          style={{ width: '100%', borderRadius: '15px', backgroundColor: '#eab308', padding: '1.2rem', fontWeight: 900, color: '#020617', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.1em' }}
+          style={{ width: '100%', borderRadius: '18px', backgroundColor: '#eab308', padding: '1.4rem', fontWeight: 900, color: '#020617', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 10px 30px rgba(234, 179, 8, 0.2)' }}
         >
           Entrar no Painel
         </button>
-        <p style={{ marginTop: '2rem', fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Charles R. Nobre • v5.0 Purificado
+        <p style={{ marginTop: '2.5rem', fontSize: '9px', color: '#334155', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+          Acesso Local Seguro • v5.1
         </p>
       </div>
     </div>
