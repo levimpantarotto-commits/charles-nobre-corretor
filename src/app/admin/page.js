@@ -182,23 +182,25 @@ export default function AdminPage() {
               {showForm && (
                 <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="marketplace-form-overlay">
                   <div className="marketplace-grid-3">
-                    {/* COLUNA 1: MINIATURAS (GRID 2x5) */}
+                    {/* COLUNA 1: MINIATURAS ADAPTÁVEIS */}
                     <div className="col-thumbnails">
-                      <div className="col-header"><h3>Fotos ({formData.images.length}/10)</h3></div>
-                      <div className="thumbs-grid">
-                        {Array.from({ length: 10 }).map((_, i) => (
-                          <div key={i} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''} ${!formData.images[i] ? 'empty' : ''}`} onClick={() => formData.images[i] && setActiveImgIndex(i)}>
-                            {formData.images[i] ? (
-                              <>
-                                <img src={formData.images[i]} alt="" />
-                                <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}><X size={12}/></button>
-                              </>
-                            ) : (
-                              <ImageIcon size={20} className="text-slate-800" />
-                            )}
-                            {i === 0 && formData.images[i] && <span className="capa-label">CAPA</span>}
+                      <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
+                      <div className="thumbs-scroll-area">
+                        <div className="thumbs-grid">
+                          {formData.images.map((img, i) => (
+                            <div key={i} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} onClick={() => setActiveImgIndex(i)}>
+                              <img src={img} alt="" />
+                              <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}>
+                                <X size={12}/>
+                              </button>
+                              {i === 0 && <span className="capa-label">CAPA</span>}
+                            </div>
+                          ))}
+                          {/* Slot vazio para incentivar adição */}
+                          <div className="thumb-slot empty">
+                            <ImageIcon size={20} className="text-slate-800" />
                           </div>
-                        ))}
+                        </div>
                       </div>
                       <div className="add-url-section">
                         <p className="hint">Cole o link do Google Drive abaixo:</p>
@@ -327,7 +329,11 @@ export default function AdminPage() {
         .marketplace-grid-3 { height: 100%; display: grid; grid-template-columns: 280px 1fr 380px; }
         
         /* COLUNA 1: THUMBS */
-        .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; }
+        .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
+        .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
+        .thumbs-scroll-area::-webkit-scrollbar { width: 4px; }
+        .thumbs-scroll-area::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        
         .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; }
         .thumbs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
         .thumb-slot { aspect-ratio: 1; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
