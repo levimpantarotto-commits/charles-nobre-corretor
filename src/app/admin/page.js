@@ -8,6 +8,7 @@ import AdminLogin from '@/components/AdminLogin';
 
 export default function AdminPage() {
   const [session, setSession] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -119,25 +120,78 @@ export default function AdminPage() {
     setUploading(false);
   };
 
+  const moveImage = (index, direction) => {
+    const newImages = [...formData.images];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < newImages.length) {
+      const temp = newImages[index];
+      newImages[index] = newImages[newIndex];
+      newImages[newIndex] = temp;
+      setFormData(prev => ({ ...prev, images: newImages }));
+    }
+  };
+
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleEdit = (prop) => {
+    setEditingId(prop.id);
+    setFormData({
+      title: prop.title,
+      description: prop.description,
+      price: prop.price,
+      city: prop.city || 'Imbituba',
+      neighborhood: prop.neighborhood || '',
+      category: prop.category || 'Residencial',
+      images: prop.images || []
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Se não houver imagens, usamos uma imagem padrão do Charles
     const finalImages = formData.images.length > 0 ? formData.images : ['/images/property1.png'];
     
     setLoading(true);
-    const { error } = await supabase
-      .from('properties')
-      .insert([{
-        ...formData,
-        images: finalImages,
-        price: parseFloat(formData.price)
-      }]);
+    
+    if (editingId) {
+      // MODO EDIÇÃO
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          ...formData,
+          images: finalImages,
+          price: parseFloat(formData.price)
+        })
+        .eq('id', editingId);
 
-    if (error) alert('Erro ao salvar: ' + error.message);
-    else {
-      alert('Imóvel cadastrado com sucesso!');
-      setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
-      fetchProperties();
+      if (error) alert('Erro ao atualizar: ' + error.message);
+      else {
+        alert('Imóvel atualizado com sucesso!');
+        setEditingId(null);
+        setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+        fetchProperties();
+      }
+    } else {
+      // MODO CADASTRO
+      const { error } = await supabase
+        .from('properties')
+        .insert([{
+          ...formData,
+          images: finalImages,
+          price: parseFloat(formData.price)
+        }]);
+
+      if (error) alert('Erro ao salvar: ' + error.message);
+      else {
+        alert('Imóvel cadastrado com sucesso!');
+        setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+        fetchProperties();
+      }
     }
     setLoading(false);
   };
@@ -190,7 +244,7 @@ export default function AdminPage() {
           {activeTab === 'properties' ? (
           <div className="admin-grid">
             <section className="admin-form-card">
-              <h2>Cadastrar Novo Imóvel</h2>
+              <h2>{editingId ? 'Editar Imóvel' : 'Cadastrar Novo Imóvel'}</h2>
               <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
                   <label>Título do Imóvel</label>
@@ -252,7 +306,29 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Seção de Imagem removida temporariamente conforme solicitado */}
+                <div className="form-group">
+                  <label>Galeria de Fotos (Arraste ou use as setas para ordenar)</label>
+                  <div className="file-input-wrapper">
+                    <label htmlFor="file-upload" className="btn-file">
+                      {uploading ? 'Subindo...' : '+ Adicionar Foto'}
+                    </label>
+                    <input id="file-upload" type="file" onChange={handleFileUpload} accept="image/*" />
+                  </div>
+                  
+                  <div className="image-manager-grid">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="image-manager-item">
+                        <img src={img} alt={`Foto ${index + 1}`} />
+                        <div className="image-controls">
+                          <button type="button" onClick={() => moveImage(index, 'up')} disabled={index === 0}>←</button>
+                          <button type="button" onClick={() => moveImage(index, 'down')} disabled={index === formData.images.length - 1}>→</button>
+                          <button type="button" onClick={() => removeImage(index)} className="btn-remove-img">×</button>
+                        </div>
+                        {index === 0 && <span className="label-cover">Capa</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <div className="form-group">
                   <label>Descrição</label>
@@ -265,9 +341,23 @@ export default function AdminPage() {
                   ></textarea>
                 </div>
 
-                <button type="submit" className="btn-save" disabled={loading || uploading}>
-                  {loading ? 'Processando...' : 'Cadastrar Imóvel'}
-                </button>
+                <div className="form-actions">
+                  <button type="submit" className="btn-save" disabled={loading || uploading}>
+                    {loading ? 'Processando...' : (editingId ? 'Salvar Alterações' : 'Cadastrar Imóvel')}
+                  </button>
+                  {editingId && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setEditingId(null);
+                        setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+                      }} 
+                      className="btn-cancel"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
               </form>
             </section>
 
@@ -282,7 +372,10 @@ export default function AdminPage() {
                         <h4>{prop.title}</h4>
                         <span>R$ {prop.price?.toLocaleString('pt-BR')}</span>
                       </div>
-                      <button onClick={() => handleDelete(prop.id)} className="btn-delete">Excluir</button>
+                      <div className="admin-item-actions">
+                        <button onClick={() => handleEdit(prop)} className="btn-edit">Editar</button>
+                        <button onClick={() => handleDelete(prop.id)} className="btn-delete">Excluir</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -432,33 +525,90 @@ export default function AdminPage() {
           width: 100%;
           text-align: center;
         }
-        .image-previews {
+        .image-manager-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+          gap: 1rem;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f1f5f9;
+          border-radius: 8px;
+        }
+        .image-manager-item {
+          position: relative;
+          aspect-ratio: 1/1;
+          border-radius: 6px;
+          overflow: hidden;
+          background: white;
+          border: 2px solid transparent;
+        }
+        .image-manager-item:first-child {
+          border-color: var(--secondary);
+        }
+        .image-manager-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .image-controls {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(0,0,0,0.7);
+          display: flex;
+          justify-content: space-between;
+          padding: 2px;
+        }
+        .image-controls button {
+          background: transparent;
+          border: none;
+          color: white;
+          padding: 4px;
+          cursor: pointer;
+          font-size: 1rem;
+        }
+        .btn-remove-img {
+          color: #ef4444 !important;
+          font-weight: bold;
+        }
+        .label-cover {
+          position: absolute;
+          top: 0;
+          left: 0;
+          background: var(--secondary);
+          color: var(--primary);
+          font-size: 0.6rem;
+          font-weight: bold;
+          padding: 2px 6px;
+          text-transform: uppercase;
+        }
+        .admin-item-actions {
           display: flex;
           gap: 0.5rem;
-          flex-wrap: wrap;
         }
-        .preview-thumb {
-          width: 60px;
-          height: 60px;
-          object-fit: cover;
+        .btn-edit {
+          background: #e0f2fe;
+          color: #0369a1;
+          border: none;
+          padding: 0.5rem 1rem;
           border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
         }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .btn-save {
-          width: 100%; background: var(--secondary); color: var(--primary);
-          padding: 1rem; border-radius: 6px; font-weight: 700; border: none; cursor: pointer;
+        .form-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
         }
-        .admin-list { display: flex; flex-direction: column; gap: 1rem; }
-        .admin-item {
-          display: flex; align-items: center; gap: 1rem; padding: 1rem;
-          border: 1px solid #f1f5f9; border-radius: 8px;
-        }
-        .admin-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
-        .item-info { flex: 1; }
-        .item-info h4 { margin: 0; font-size: 1rem; }
-        .item-info span { font-size: 0.85rem; color: var(--secondary); font-weight: 600; }
-        .btn-delete {
-          background: #fee2e2; color: #dc2626; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
+        .btn-cancel {
+          background: #f1f5f9;
+          color: #64748b;
+          border: none;
+          padding: 1rem;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
         }
         @media (max-width: 992px) { .admin-grid { grid-template-columns: 1fr; } }
       `}</style>
