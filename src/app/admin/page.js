@@ -39,7 +39,7 @@ function LocalAdminLogin({ onLogin }) {
       }}>
         <img src="/images/logo-trimmed.png" alt="" style={{ height: '50px', margin: '0 auto 2.5rem', objectFit: 'contain' }} />
         <h2 style={{ marginBottom: '2.5rem', fontSize: '0.65rem', fontWeight: 900, color: '#eab308', textTransform: 'uppercase', letterSpacing: '0.3em' }}>
-          Painel Charles R. Nobre
+          Acesso Administrativo
         </h2>
         
         <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
@@ -73,7 +73,7 @@ function LocalAdminLogin({ onLogin }) {
           Entrar no Painel
         </button>
         <p style={{ marginTop: '2.5rem', fontSize: '9px', color: '#334155', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-          Acesso Local Seguro • v5.2
+          Autenticação Segura • v5.4
         </p>
       </div>
     </div>
@@ -101,6 +101,15 @@ export default function AdminPage() {
   useEffect(() => {
     if (isLoggedIn) {
       document.body.style.overflow = 'hidden';
+      // Remoção programática de elementos obstrutores (Navbar, Hero, Header, Footer)
+      const cleanupSelectors = ['.navbar', 'header', 'footer', '.hero-section', '.search-bar'];
+      cleanupSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          if (el) el.setAttribute('style', 'display: none !important');
+        });
+      });
+
       fetchProperties();
       fetchSiteConfigs();
     } else {
@@ -236,7 +245,7 @@ export default function AdminPage() {
                   <div key={prop.id} className="ad-card-row" onClick={() => handleEdit(prop)}>
                     <div className="ad-thumb">
                       <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
-                      {prop.category === 'Alto Padrão' && <span className="premium-tag">ELITE</span>}
+                      {prop.category === 'Alto Padrão' && <span className="premium-tag">PREMIUM</span>}
                     </div>
                     <div className="ad-info">
                       <h3>{prop.title}</h3>
