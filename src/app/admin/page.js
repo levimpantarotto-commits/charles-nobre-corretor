@@ -207,10 +207,23 @@ export default function AdminPage() {
 
   return (
     <div className="admin-marketplace-layout">
-      {/* INJEÇÃO DE CSS GLOBAL PARA LIMPEZA TOTAL */}
+      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA */}
       <style dangerouslySetInnerHTML={{ __html: `
         .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar { display: none !important; }
-        body { background: #020617; overflow: hidden !important; }
+        body { background: #020617; overflow: hidden !important; width: 100vw; height: 100vh; }
+        
+        .admin-marketplace-layout { 
+          position: fixed !important; 
+          inset: 0 !important; 
+          z-index: 9999999 !important; 
+          background: #020617 !important; 
+          width: 100vw !important;
+          height: 100vh !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important; 
+          font-family: 'Inter', sans-serif;
+        }
       ` }} />
 
       {/* HEADER SUPERIOR FINO */}
@@ -381,10 +394,6 @@ export default function AdminPage() {
       </main>
 
       <style jsx>{`
-        :global(.navbar) { display: none !important; }
-        :global(.lead-modal), :global(.lead-modal-overlay) { display: none !important; }
-        
-        .admin-marketplace-layout { background: #020617; min-height: 100vh; color: #f8fafc; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; position: relative; z-index: 5000; }
         .admin-top-nav { height: 70px; background: rgba(15, 23, 42, 0.8); backdrop-blur: 20px; border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .nav-link { color: #64748b; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem; transition: 0.3s; }
         .nav-link.active { color: #fff; border-bottom: 2px solid #eab308; }
@@ -393,7 +402,7 @@ export default function AdminPage() {
         .admin-main-container { flex-grow: 1; position: relative; overflow: hidden; }
         .layout-split { height: calc(100vh - 70px); position: relative; }
         
-        .ads-list-panel { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; }
+        .ads-list-panel { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; overflow-y: auto; height: 100%; }
         .ads-list-panel.minimized { opacity: 0.2; pointer-events: none; transform: scale(0.98); }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
         .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
@@ -401,7 +410,7 @@ export default function AdminPage() {
         .search-box { background: #0f172a; border: 1px solid #1e293b; padding: 0.6rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.8rem; width: 300px; }
         .search-box input { background: transparent; border: none; color: #fff; outline: none; font-size: 0.9rem; }
         
-        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
+        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; padding-bottom: 100px; }
         .ad-card-row { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; display: flex; cursor: pointer; transition: 0.3s; }
         .ad-card-row:hover { border-color: #eab308; transform: translateY(-4px); }
         .ad-thumb { width: 140px; height: 140px; position: relative; background: #1e293b; }
@@ -413,28 +422,11 @@ export default function AdminPage() {
         .price { font-size: 1.1rem; font-weight: 900; color: #eab308; }
         .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 6px; border-radius: 6px; }
 
-        /* MARKETPLACE 3 COLUNAS */
         .marketplace-form-overlay { position: fixed; inset: 0; background: #020617; z-index: 2000; overflow-y: auto; overflow-x: hidden; }
         .marketplace-grid-3 { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr 380px; }
         
-        @media (max-width: 1200px) {
-          .marketplace-grid-3 { grid-template-columns: 250px 1fr; }
-          .col-form-details { grid-column: span 2; border-left: none; border-top: 1px solid #1e293b; }
-        }
-
-        @media (max-width: 768px) {
-          .marketplace-grid-3 { grid-template-columns: 1fr; }
-          .col-thumbnails { order: 2; border-right: none; }
-          .col-preview { order: 1; height: 300px; padding: 1rem; }
-          .col-form-details { order: 3; }
-        }
-        
-        /* COLUNA 1: THUMBS */
         .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
         .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
-        .thumbs-scroll-area::-webkit-scrollbar { width: 4px; }
-        .thumbs-scroll-area::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        
         .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; }
         .thumbs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
         .thumb-slot { aspect-ratio: 1; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
@@ -448,7 +440,6 @@ export default function AdminPage() {
         .url-form input { background: #0f172a; border: 1px solid #1e293b; padding: 0.8rem; border-radius: 8px; color: #fff; font-size: 0.8rem; flex-grow: 1; }
         .url-form button { background: #eab308; color: #020617; padding: 0.8rem; border-radius: 8px; border: none; flex-shrink: 0; }
 
-        /* COLUNA 2: PREVIEW */
         .col-preview { background: #020617; display: flex; align-items: center; justify-content: center; position: relative; padding: 4rem; }
         .preview-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
         .main-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 20px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); }
@@ -456,16 +447,13 @@ export default function AdminPage() {
         .btn-close-market:hover { background: #ef4444; }
         .nav-btns { position: absolute; width: 100%; display: flex; justify-content: space-between; padding: 0 2rem; pointer-events: none; }
         .nav-btns button { pointer-events: auto; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; color: #fff; width: 50px; height: 50px; border-radius: 50%; opacity: 0.5; transition: 0.3s; }
-        .nav-btns button:hover { background: #eab308; color: #020617; opacity: 1; }
 
-        /* COLUNA 3: FORM */
-        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; padding-bottom: 120px; }
+        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; padding-bottom: 200px; }
         .details-form { display: flex; flex-direction: column; gap: 1.5rem; }
         .field label { display: block; font-size: 0.75rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.6rem; }
         .field input, .field select, .field textarea { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 1rem; border-radius: 10px; color: #fff; font-size: 0.9rem; }
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .btn-save-market { background: #eab308; color: #020617; padding: 1.2rem; border-radius: 12px; font-weight: 900; text-transform: uppercase; border: none; display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 2rem; transition: 0.3s; }
-        .btn-save-market:hover { background: #fff; transform: translateY(-2px); }
         .glass-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; }
       `}</style>
     </div>
