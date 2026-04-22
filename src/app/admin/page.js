@@ -90,6 +90,7 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [externalUrl, setExternalUrl] = useState('');
   const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Inicialização e Persistência do Login
   useEffect(() => {
@@ -137,7 +138,7 @@ export default function AdminPage() {
     window.location.href = '/admin'; // Hard reset para limpar o estado
   };
   
-  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '' });
+  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
   const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
 
   const handleAttemptLogin = (email, pass) => {
@@ -186,7 +187,12 @@ export default function AdminPage() {
 
   const handleEdit = (prop) => {
     setEditingId(prop.id);
-    setFormData({ ...prop, price: prop.price.toString() });
+    setFormData({ 
+      ...prop, 
+      price: prop.price.toString(),
+      city: prop.location?.city || prop.city || 'Imbituba',
+      neighborhood: prop.location?.neighborhood || prop.neighborhood || ''
+    });
     setShowForm(true);
     setActiveImgIndex(0);
   };
@@ -196,10 +202,16 @@ export default function AdminPage() {
     setLoading(true);
     try {
       let updated;
+      const dataToSave = { 
+        ...formData, 
+        price: Number(formData.price),
+        location: { city: formData.city, neighborhood: formData.neighborhood, state: 'SC' }
+      };
+
       if (editingId) {
-        updated = properties.map(p => p.id === editingId ? { ...formData, id: editingId } : p);
+        updated = properties.map(p => p.id === editingId ? { ...p, ...dataToSave, id: editingId } : p);
       } else {
-        const newProperty = { ...formData, id: Date.now() };
+        const newProperty = { ...dataToSave, id: Date.now().toString() };
         updated = [newProperty, ...properties];
       }
 
@@ -299,7 +311,7 @@ export default function AdminPage() {
           <img src="/images/logo-trimmed.png" alt="Charles R. Nobre" className="nav-logo-robust" />
           <div className="nav-divider"></div>
           <button onClick={() => setActiveTab('properties')} className={`nav-tab-btn ${activeTab === 'properties' ? 'active' : ''}`}>Meus Anúncios</button>
-          <button onClick={() => setActiveTab('settings')} className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}>Biografia</button>
+          <button onClick={() => setActiveTab('settings')} className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}>Configurações</button>
         </div>
         <div className="nav-right-group">
           <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[]}); setShowForm(true); }} className="btn-add-robust"><Plus size={16}/> Novo Anúncio</button>
@@ -316,12 +328,12 @@ export default function AdminPage() {
                 <h2>Meus Anúncios <span className="badge">{properties.length}</span></h2>
                 <div className="search-box">
                   <Search size={16} className="text-slate-500" />
-                  <input type="text" placeholder="Buscar imóvel..." />
+                  <input type="text" placeholder="Buscar imóvel..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
               </div>
 
               <div className="ads-grid">
-                {properties.map(prop => (
+                {properties.filter(p => !searchTerm || p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()) || p.location?.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase())).map(prop => (
                   <div key={prop.id} className="ad-card-row" onClick={() => handleEdit(prop)}>
                     <div className="ad-thumb">
                       <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
@@ -329,7 +341,7 @@ export default function AdminPage() {
                     </div>
                     <div className="ad-info">
                       <h3>{prop.title}</h3>
-                      <p><MapPin size={12}/> {prop.neighborhood}, {prop.city}</p>
+                      <p><MapPin size={12}/> {prop.location?.neighborhood || prop.neighborhood || 'N/A'}, {prop.location?.city || prop.city || 'N/A'}</p>
                       <div className="flex items-end justify-between">
                         <span className="price">R$ {prop.price?.toLocaleString('pt-BR')}</span>
                         <div className="actions">
@@ -440,20 +452,40 @@ export default function AdminPage() {
             </AnimatePresence>
           </div>
         ) : (
-          /* CONFIGURAÇÕES DE BIOGRAFIA */
+          /* CONFIGURAÇÕES GERAIS */
           <div className="max-w-4xl mx-auto p-10">
             <div className="glass-panel p-10">
-              <h2 className="text-2xl font-black mb-6">Biografia Institucional</h2>
+              <h2 className="text-2xl font-black mb-6">Configurações Gerais do Site</h2>
+              
+              <div className="details-form mb-6">
+                <div className="field-row">
+                  <div className="field">
+                    <label>E-mail de Contato</label>
+                    <input type="email" value={siteConfigs.contact_email || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_email: e.target.value})} placeholder="exemplo@email.com" />
+                  </div>
+                  <div className="field">
+                    <label>Telefone / WhatsApp</label>
+                    <input type="text" value={siteConfigs.contact_phone || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_phone: e.target.value})} placeholder="(48) 99999-9999" />
+                  </div>
+                </div>
+                <div className="field">
+                    <label>Título Principal (Hero Section)</label>
+                    <input type="text" value={siteConfigs.hero_title || ''} onChange={e => setSiteConfigs({...siteConfigs, hero_title: e.target.value})} placeholder="Encontre o Imóvel dos seus sonhos..." />
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black mb-4 mt-8 text-yellow-500">Biografia Institucional</h3>
               <textarea 
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-6 text-slate-300 min-h-[400px] outline-none focus:border-yellow-500" 
-                value={siteConfigs.about_bio} 
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-6 text-slate-300 min-h-[300px] outline-none focus:border-yellow-500" 
+                value={siteConfigs.about_bio || ''} 
                 onChange={e => setSiteConfigs({...siteConfigs, about_bio: e.target.value})}
+                placeholder="Escreva a biografia que aparecerá na seção Sobre..."
               />
               <button 
                 onClick={() => handleUpdateConfig(siteConfigs)}
-                className="mt-6 bg-yellow-500 text-slate-950 font-black px-10 py-4 rounded-xl uppercase tracking-widest text-sm"
+                className="mt-8 bg-yellow-500 text-slate-950 font-black px-10 py-4 rounded-xl uppercase tracking-widest text-sm w-full flex justify-center items-center gap-2 transition hover:bg-yellow-400"
               >
-                Salvar Biografia
+                <Save size={18}/> Salvar Todas Configurações
               </button>
             </div>
           </div>
