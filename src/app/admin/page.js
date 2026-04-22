@@ -4,7 +4,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { 
   FileText, Settings, LogOut, Plus, Trash2, Edit3, 
   Image as ImageIcon, UploadCloud, MapPin, DollarSign,
-  Search, CheckCircle, X, Maximize2, ExternalLink, ChevronDown
+  Search, CheckCircle, X, Maximize2, ExternalLink, ChevronDown, AlertTriangle, Link as LinkIcon
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Footer from '@/components/Footer';
@@ -17,15 +17,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('properties');
-  const [setupError, setSetupError] = useState(false);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [externalUrl, setExternalUrl] = useState('');
   
   const formRef = useRef(null);
   const [siteConfigs, setSiteConfigs] = useState({
-    about_bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação — meu trabalho é conectar pessoas a espaços que fazem sentido para suas vidas.
-    
-Minha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária...`,
+    about_bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação...`,
     contact_email: 'levimpantarotto@gmail.com',
     contact_phone: '(48) 99945-9527',
   });
@@ -66,17 +65,14 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
       .from('properties')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Error fetching properties:', error);
-      if (error.message.includes('relation "properties" does not exist')) setSetupError(true);
-    } else setProperties(data || []);
+    if (error) setSyncError(`Erro de conexão: ${error.message}`);
+    else setProperties(data || []);
     setLoading(false);
   }
 
   async function fetchSiteConfigs() {
-    const { data, error } = await supabase.from('site_configs').select('*');
-    if (error) console.error('Error fetching configs:', error);
-    else if (data) {
+    const { data } = await supabase.from('site_configs').select('*');
+    if (data) {
       const configs = {};
       data.forEach(item => { configs[item.key] = item.value; });
       setSiteConfigs(prev => ({ ...prev, ...configs }));
@@ -85,18 +81,32 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
 
   const handleUpdateConfig = async (key, value) => {
     const { error } = await supabase.from('site_configs').upsert({ key, value }, { onConflict: 'key' });
-    if (error) alert('Erro ao atualizar: ' + error.message);
+    if (error) setSyncError(`Erro de config: ${error.message}`);
     else fetchSiteConfigs();
   };
 
   const handleNewProperty = () => {
     setEditingId(null);
+    setSyncError(null);
     setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
     setShowForm(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
+  const handleExternalUrlAdd = (e) => {
+    e.preventDefault();
+    if (!externalUrl.trim()) return;
+    if (!externalUrl.startsWith('http')) {
+      setSyncError('A URL deve começar com http:// ou https://');
+      return;
+    }
+    setFormData(prev => ({ ...prev, images: [...prev.images, externalUrl.trim()] }));
+    setExternalUrl('');
+    setSyncError(null);
+  };
+
   const handleMultiFileUpload = async (e) => {
+    setSyncError(null);
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     setUploading(true);
@@ -106,7 +116,10 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `property-images/${fileName}`;
       const { error: uploadError } = await supabase.storage.from('properties').upload(filePath, file);
-      if (!uploadError) {
+      if (uploadError) {
+        setSyncError(`Falha no Storage: ${uploadError.message}. Use a opção de URL externa se o limite de espaço foi atingido.`);
+        break;
+      } else {
         const { data: { publicUrl } } = supabase.storage.from('properties').getPublicUrl(filePath);
         newImages.push(publicUrl);
       }
@@ -116,6 +129,7 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
   };
 
   const handleEdit = (prop) => {
+    setSyncError(null);
     setEditingId(prop.id);
     setFormData({
       title: prop.title,
@@ -132,33 +146,29 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSyncError(null);
     setLoading(true);
     const payload = { ...formData, price: parseFloat(formData.price) };
-    if (editingId) {
-      const { error } = await supabase.from('properties').update(payload).eq('id', editingId);
-      if (!error) {
-        setEditingId(null);
-        setShowForm(false);
-        fetchProperties();
-      }
-    } else {
-      const { error } = await supabase.from('properties').insert([payload]);
-      if (!error) {
-        setShowForm(false);
-        fetchProperties();
-      }
-    }
+    const { error } = editingId 
+      ? await supabase.from('properties').update(payload).eq('id', editingId)
+      : await supabase.from('properties').insert([payload]);
+    
+    if (error) setSyncError(`Erro ao salvar: ${error.message}`);
+    else { setShowForm(false); fetchProperties(); }
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Excluir este imóvel?')) return;
-    await supabase.from('properties').delete().eq('id', id);
-    fetchProperties();
+    if (!confirm('Excluir imóvel?')) return;
+    const { error } = await supabase.from('properties').delete().eq('id', id);
+    if (error) setSyncError(`Erro ao excluir: ${error.message}`);
+    else fetchProperties();
   };
 
-  const updateImagesOrder = (newOrder) => {
-    setFormData(prev => ({ ...prev, images: newOrder }));
+  const getValidImageUrl = (img) => {
+    if (!img) return '/images/property1.png';
+    if (img.startsWith('/images') || img.startsWith('http')) return img;
+    return '/images/property1.png';
   };
 
   if (!session) return <AdminLogin />;
@@ -175,162 +185,95 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
                 <p>Gestão Profissional • Charles R. Nobre</p>
               </div>
             </div>
-            
             <div className="header-actions">
-              <button onClick={handleNewProperty} className="btn-create-head">
-                <Plus size={18} /> Novo Imóvel
-              </button>
+              <button onClick={handleNewProperty} className="btn-create-head"><Plus size={18} /> Novo Imóvel</button>
               <nav className="admin-nav-pills">
-                <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}>
-                  <FileText size={16} /> Imóveis
-                </button>
-                <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}>
-                  <Settings size={16} /> Configurações
-                </button>
+                <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}><FileText size={16} /> Imóveis</button>
+                <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}><Settings size={16} /> Configurações</button>
               </nav>
-              <button onClick={() => supabase.auth.signOut()} className="btn-exit">
-                <LogOut size={16} /> Sair
-              </button>
+              <button onClick={() => supabase.auth.signOut()} className="btn-exit"><LogOut size={16} /> Sair</button>
             </div>
           </div>
+          <AnimatePresence>
+            {syncError && (
+              <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="container mt-4">
+                <div className="sync-error-banner"><AlertTriangle size={20} /><span>{syncError}</span><button onClick={() => setSyncError(null)}><X size={16} /></button></div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </header>
 
         <div className="container content-push">
           <AnimatePresence mode="wait">
             {activeTab === 'properties' ? (
               <motion.div key="p-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                
-                {/* FORMULÁRIO DE CADASTRO (ANIMADO E OCULTÁVEL) */}
                 <AnimatePresence>
                   {showForm && (
-                    <motion.div 
-                      ref={formRef}
-                      initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-                      animate={{ height: 'auto', opacity: 1, marginBottom: '4rem' }}
-                      exit={{ height: 0, opacity: 0, marginBottom: 0 }}
-                      className="form-overflow-hidden"
-                    >
+                    <motion.div ref={formRef} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="form-overflow-hidden">
                       <section className="glass-card premium-form-layout">
                         <div className="section-header">
                           <div className="header-label">
                             {editingId ? <Edit3 className="icon-edit-v4" /> : <Plus className="icon-plus-v4" />}
                             <h2>{editingId ? 'Editando Propriedade' : 'Cadastrar Novo Imóvel'}</h2>
                           </div>
-                          <button onClick={() => setShowForm(false)} className="btn-close-form">
-                            <X size={20} />
-                          </button>
+                          <button onClick={() => setShowForm(false)} className="btn-close-form"><X size={20} /></button>
                         </div>
-
                         <form onSubmit={handleSubmit} className="form-grid-layout">
                           <div className="form-main-fields">
-                            <div className="field-group">
-                              <label>Título do Anúncio</label>
-                              <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Casa Praia do Rosa com Vista Mar" />
-                            </div>
-                            
+                            <div className="field-group"><label>Título</label><input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
                             <div className="field-row">
-                              <div className="field-group">
-                                <label>Valor (R$)</label>
-                                <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-                              </div>
-                              <div className="field-group">
-                                <label>Categoria</label>
-                                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                                  <option>Residencial</option>
-                                  <option>Alto Padrão</option>
-                                  <option>Terreno</option>
-                                  <option>Comercial</option>
-                                </select>
-                              </div>
+                              <div className="field-group"><label>Valor (R$)</label><input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></div>
+                              <div className="field-group"><label>Categoria</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Residencial</option><option>Alto Padrão</option><option>Terreno</option></select></div>
                             </div>
-
-                            <div className="field-row">
-                              <div className="field-group">
-                                <label>Cidade</label>
-                                <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}>
-                                  <option>Imbituba</option>
-                                  <option>Garopaba</option>
-                                  <option>Imaruí</option>
-                                </select>
-                              </div>
-                              <div className="field-group">
-                                <label>Bairro</label>
-                                <input type="text" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
-                              </div>
-                            </div>
-
-                            <div className="field-group">
-                              <label>Descrição</label>
-                              <textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-                            </div>
+                            <div className="field-group"><label>Descrição</label><textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
                           </div>
-
                           <div className="form-gallery-fields">
-                            <label>Galeria (Arraste lateralmente para ordenar)</label>
+                            <label>Banco de Imagens (Upload ou URL)</label>
                             <div className="dropzone-v4" onClick={() => document.getElementById('file-up').click()}>
-                              <UploadCloud size={32} />
-                              <span>Adicionar Fotos</span>
+                              {uploading ? 'Processando Arquivos...' : <><UploadCloud size={24} /><span>Upload Local</span></>}
                               <input id="file-up" type="file" multiple hidden onChange={handleMultiFileUpload} accept="image/*" />
                             </div>
-
-                            <div className="gallery-reorder-container">
-                              <Reorder.Group 
-                                axis="x" 
-                                values={formData.images} 
-                                onReorder={updateImagesOrder} 
-                                className="reorder-flex-grid"
-                              >
-                                {formData.images.map((img, i) => (
-                                  <Reorder.Item key={img} value={img} className="reorder-item-v4">
-                                    <div className="reorder-img-card">
-                                      <img src={img} alt="" onClick={() => setLightboxImg(img)} title="Clique para ampliar" />
-                                      <button type="button" onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})} className="btn-del-img-v4">
-                                        <Trash2 size={12}/>
-                                      </button>
-                                      {i === 0 && <span className="capa-tag">CAPA</span>}
-                                    </div>
-                                  </Reorder.Item>
-                                ))}
-                              </Reorder.Group>
+                            <div className="divider-v4"><span>OU</span></div>
+                            <div className="url-input-v4">
+                              <input type="text" placeholder="Cole o link da foto aqui..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
+                              <button onClick={handleExternalUrlAdd} className="btn-add-url"><LinkIcon size={16} /></button>
                             </div>
+                            <Reorder.Group axis="x" values={formData.images} onReorder={imgs => setFormData({...formData, images: imgs})} className="reorder-flex-grid">
+                              {formData.images.map((img, i) => (
+                                <Reorder.Item key={img} value={img} className="reorder-item-v4">
+                                  <div className="reorder-img-card">
+                                    <img src={getValidImageUrl(img)} alt="" onClick={() => setLightboxImg(img)} />
+                                    <button type="button" onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})} className="btn-del-img-v4"><Trash2 size={12}/></button>
+                                    {i === 0 && <span className="capa-tag">CAPA</span>}
+                                  </div>
+                                </Reorder.Item>
+                              ))}
+                            </Reorder.Group>
                           </div>
-
                           <div className="form-submit-footer">
-                            <button type="submit" disabled={loading} className="btn-submit-v4">
-                              {loading ? 'Sincronizando...' : (editingId ? 'Salvar Alterações' : 'Publicar Imóvel')}
-                            </button>
+                            <button type="submit" disabled={loading} className="btn-submit-v4">{loading ? 'Sincronizando...' : 'Publicar Alterações'}</button>
                           </div>
                         </form>
                       </section>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* GRADE DE IMÓVEIS (4 COLUNAS) */}
                 <div className="properties-feed-v4">
-                  <div className="feed-header-v4">
-                    <div className="header-meta">
-                      <CheckCircle className="text-yellow-500" size={24} />
-                      <h2>Imóveis Ativos <span className="count-badge">{properties.length}</span></h2>
-                    </div>
-                  </div>
-                  
+                  <div className="feed-header-v4"><h2>Imóveis Ativos <span className="count-badge">{properties.length}</span></h2></div>
                   <div className="property-grid-4">
                     {properties.map(prop => (
                       <motion.div layout key={prop.id} className="prop-card-v4">
                         <div className="prop-img-wrap" onClick={() => handleEdit(prop)}>
-                          <img src={prop.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop'} alt="" />
-                          <div className="prop-badge">{prop.category}</div>
+                          <img src={getValidImageUrl(prop.images?.[0])} alt="" />
                           <div className="edit-overlay"><Edit3 size={24} /></div>
                         </div>
                         <div className="prop-data">
                           <h3>{prop.title}</h3>
-                          <p><MapPin size={12} /> {prop.neighborhood}, {prop.city}</p>
                           <div className="prop-price-row">
                             <span className="price-tag">R$ {prop.price?.toLocaleString('pt-BR')}</span>
                             <div className="prop-actions-btns">
-                              <button onClick={() => handleEdit(prop)} className="btn-edit-mini" title="Editar"><Edit3 size={14}/></button>
-                              <button onClick={() => handleDelete(prop.id)} className="btn-del-mini" title="Excluir"><Trash2 size={14}/></button>
+                              <button onClick={() => handleEdit(prop)} className="btn-edit-mini"><Edit3 size={14}/></button>
+                              <button onClick={() => handleDelete(prop.id)} className="btn-del-mini"><Trash2 size={14}/></button>
                             </div>
                           </div>
                         </div>
@@ -340,197 +283,69 @@ Minha trajetória inclui experiências internacionais que ampliaram meu olhar so
                 </div>
               </motion.div>
             ) : (
-              <motion.div key="s-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="settings-grid-v4">
-                <div className="glass-card p-10">
-                  <div className="section-header">
-                    <div className="header-label">
-                      <Settings className="text-yellow-500" />
-                      <h2>Textos Institucionais</h2>
-                    </div>
-                  </div>
-                  <div className="field-group">
-                    <label>Biografia do Sobre</label>
-                    <textarea rows="12" className="institucional-textarea" value={siteConfigs.about_bio} onChange={e => setSiteConfigs({...siteConfigs, about_bio: e.target.value})} onBlur={e => handleUpdateConfig('about_bio', e.target.value)} />
-                  </div>
-                </div>
-              </motion.div>
+              <div className="glass-card p-10">
+                <textarea rows="12" className="institucional-textarea" value={siteConfigs.about_bio} onChange={e => handleUpdateConfig('about_bio', e.target.value)} />
+              </div>
             )}
           </AnimatePresence>
         </div>
-
-        {/* LIGHTBOX MODAL */}
-        <AnimatePresence>
-          {lightboxImg && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="lightbox-overlay" onClick={() => setLightboxImg(null)}>
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="lightbox-content">
-                <img src={lightboxImg} alt="Visualização expandida" />
-                <button className="lightbox-close"><X size={32}/></button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <AnimatePresence>{lightboxImg && <div className="lightbox-overlay" onClick={() => setLightboxImg(null)}><img src={lightboxImg} alt="" /></div>}</AnimatePresence>
       </main>
-
       <Footer />
-
       <style jsx>{`
         .admin-page-v4 { background: #020617; min-height: 100vh; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        
-        .fixed-header { 
-          background: rgba(15, 23, 42, 0.9); 
-          backdrop-filter: blur(12px); 
-          border-bottom: 2px solid #eab308; 
-          position: sticky; 
-          top: 0; 
-          z-index: 1000; 
-          padding: 0.8rem 0;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        
+        .fixed-header { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border-bottom: 2px solid #eab308; position: sticky; top: 0; z-index: 1000; padding: 0.8rem 0; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; }
         .admin-brand { display: flex; align-items: center; gap: 1.2rem; }
-        .admin-logo-v4 { height: 45px; filter: brightness(1.1); }
-        
-        .brand-text h1 { font-size: 1.1rem; font-weight: 800; margin: 0; color: #fff; letter-spacing: -0.5px; }
-        .brand-text p { font-size: 0.7rem; color: #eab308; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; margin: 0; }
-        
-        .header-actions { display: flex; align-items: center; gap: 1.2rem; }
-        .btn-create-head { 
-          background: #eab308; 
-          color: #020617; 
-          padding: 0.6rem 1.2rem; 
-          border-radius: 8px; 
-          font-weight: 900; 
-          display: flex; 
-          align-items: center; 
-          gap: 0.5rem; 
-          cursor: pointer; 
-          border: none; 
-          transition: 0.3s;
-          text-transform: uppercase;
-          font-size: 0.75rem;
-        }
-        .btn-create-head:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 179, 8, 0.4); }
-        
-        .admin-nav-pills { display: flex; background: #1e293b; padding: 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
-        .admin-nav-pills button { 
-          background: transparent; 
-          border: none; 
-          padding: 0.6rem 1.2rem; 
-          color: #94a3b8; 
-          font-weight: 800; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          gap: 0.6rem; 
-          border-radius: 8px; 
-          transition: 0.3s;
-          font-size: 0.8rem;
-        }
-        .admin-nav-pills button.active { background: #334155; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        
-        .btn-exit { background: transparent; border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; }
-
+        .admin-logo-v4 { height: 45px; }
+        .brand-text h1 { font-size: 1.1rem; font-weight: 800; margin: 0; }
+        .brand-text p { font-size: 0.7rem; color: #eab308; text-transform: uppercase; margin: 0; }
+        .sync-error-banner { background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; font-weight: 800; }
+        .sync-error-banner button { margin-left: auto; background: transparent; border: none; color: #b91c1c; }
+        .btn-create-head { background: #eab308; color: #020617; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 900; border: none; }
+        .admin-nav-pills { display: flex; background: #1e293b; padding: 4px; border-radius: 10px; }
+        .admin-nav-pills button { background: transparent; border: none; padding: 0.6rem; color: #94a3b8; font-weight: 800; border-radius: 8px; }
+        .admin-nav-pills button.active { background: #334155; color: #fff; }
+        .btn-exit { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem; border-radius: 8px; }
         .content-push { padding-top: 3rem; padding-bottom: 6rem; }
-        .form-overflow-hidden { overflow: hidden; }
-        .glass-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        .premium-form-layout { padding: 3rem; }
-        
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; padding-bottom: 1.2rem; border-bottom: 1px solid #1e293b; }
-        .header-label { display: flex; align-items: center; gap: 1rem; }
-        .header-label h2 { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 0; font-family: 'Playfair Display', serif; }
-        .btn-close-form { background: rgba(255,255,255,0.05); color: #94a3b8; border: none; padding: 0.5rem; border-radius: 50%; cursor: pointer; transition: 0.3s; }
-        .btn-close-form:hover { background: #ef4444; color: #fff; }
-
-        .form-grid-layout { display: grid; grid-template-columns: 1fr 320px; gap: 4rem; }
-        .field-group { margin-bottom: 1.8rem; }
-        .field-group label { display: block; font-size: 0.8rem; font-weight: 900; color: #f8fafc; text-transform: uppercase; margin-bottom: 0.7rem; letter-spacing: 1px; }
-        
-        .field-group input, .field-group select, .field-group textarea { 
-          width: 100%; 
-          background: #1e293b; 
-          border: 1px solid #334155; 
-          padding: 1.1rem; 
-          border-radius: 10px; 
-          color: #fff; 
-          font-size: 1rem; 
-        }
-        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-
-        .form-gallery-fields { background: rgba(30, 41, 59, 0.4); padding: 1.5rem; border-radius: 15px; border: 1px solid #1e293b; overflow: hidden; }
-        .dropzone-v4 { 
-          border: 2px dashed #475569; 
-          padding: 2.5rem 1rem; 
-          border-radius: 15px; 
-          text-align: center; 
-          cursor: pointer; 
-          color: #94a3b8; 
-          font-weight: 900; 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          gap: 1rem;
-        }
-
-        .gallery-reorder-container { margin-top: 2rem; overflow-x: auto; padding-bottom: 1rem; }
-        .reorder-flex-grid { display: flex; gap: 1.2rem; min-width: max-content; padding: 0.5rem; }
+        .glass-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; padding: 2rem; }
+        .form-grid-layout { display: grid; grid-template-columns: 1fr 320px; gap: 3rem; }
+        .field-group { margin-bottom: 1.5rem; }
+        .field-group label { display: block; font-size: 0.75rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .field-group input, .field-group select, .field-group textarea { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 1rem; border-radius: 8px; color: #fff; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-gallery-fields { background: rgba(30, 41, 59, 0.4); padding: 1.5rem; border-radius: 15px; }
+        .dropzone-v4 { border: 2px dashed #475569; padding: 1.5rem; text-align: center; cursor: pointer; border-radius: 12px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-weight: 800; }
+        .divider-v4 { text-align: center; position: relative; margin: 1.5rem 0; }
+        .divider-v4::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #334155; }
+        .divider-v4 span { position: relative; background: #263344; padding: 0 10px; color: #475569; font-size: 0.7rem; font-weight: 900; }
+        .url-input-v4 { display: flex; gap: 0.5rem; }
+        .url-input-v4 input { flex-grow: 1; background: #0f172a; border: 1px solid #334155; padding: 0.8rem; border-radius: 8px; color: #fff; }
+        .btn-add-url { background: #eab308; border: none; padding: 0.8rem; border-radius: 8px; color: #020617; }
+        .reorder-flex-grid { display: flex; gap: 1rem; overflow-x: auto; margin-top: 1.5rem; padding: 0.5rem; }
         .reorder-item-v4 { cursor: grab; }
-        .reorder-img-card { width: 100px; height: 100px; position: relative; border-radius: 12px; overflow: hidden; border: 2px solid #334155; }
+        .reorder-img-card { width: 90px; height: 90px; position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #334155; }
         .reorder-img-card img { width: 100%; height: 100%; object-fit: cover; }
-        .btn-del-img-v4 { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 6px; cursor: pointer; z-index: 10; }
-        .capa-tag { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #020617; font-size: 9px; font-weight: 900; text-align: center; padding: 2px 0; }
-
-        .btn-submit-v4 { 
-          width: 100%; 
-          background: #eab308; 
-          color: #020617; 
-          padding: 1.3rem; 
-          border-radius: 15px; 
-          font-weight: 900; 
-          font-size: 1.2rem; 
-          border: none; 
-          cursor: pointer; 
-          transition: 0.3s;
-          text-transform: uppercase;
-          margin-top: 2rem;
-        }
-
-        .feed-header-v4 { margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; }
-        .header-meta { display: flex; align-items: center; gap: 1rem; }
-        .header-meta h2 { font-size: 1.4rem; font-weight: 800; margin: 0; color: #fff; }
-        .count-badge { background: #eab308; color: #020617; padding: 2px 10px; border-radius: 20px; font-size: 0.9rem; margin-left: 0.5rem; }
-
-        .property-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5rem; }
-        .prop-card-v4 { background: #0f172a; border: 1px solid #1e293b; border-radius: 18px; overflow: hidden; transition: 0.4s; }
-        .prop-card-v4:hover { border-color: #eab308; transform: translateY(-8px); }
-        
-        .prop-img-wrap { position: relative; height: 200px; cursor: pointer; overflow: hidden; }
-        .prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .edit-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; color: #fff; }
+        .btn-del-img-v4 { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 6px; }
+        .capa-tag { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #020617; font-size: 8px; font-weight: 900; text-align: center; }
+        .btn-submit-v4 { width: 100%; background: #eab308; color: #020617; padding: 1.2rem; border-radius: 12px; font-weight: 900; border: none; }
+        .property-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+        .prop-card-v4 { background: #0f172a; border: 1px solid #1e293b; border-radius: 15px; overflow: hidden; }
+        .prop-img-wrap { height: 160px; position: relative; cursor: pointer; }
+        .prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .edit-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; color: #fff; transition: 0.3s; }
         .prop-img-wrap:hover .edit-overlay { opacity: 1; }
-        
-        .prop-badge { position: absolute; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.9); color: #eab308; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 900; border: 1px solid #eab308; }
-        
-        .prop-data { padding: 1.5rem; }
-        .prop-data h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.6rem; color: #fff !important; line-height: 1.4; height: 3rem; overflow: hidden; }
-        .prop-data p { font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
-        
-        .prop-price-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.2rem; }
-        .price-tag { color: #eab308; font-weight: 900; font-size: 1.2rem; }
-        .btn-edit-mini, .btn-del-mini { border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; display: flex; }
-        .btn-edit-mini { background: #38bdf8; color: #fff; }
-        .btn-del-mini { background: #ef4444; color: #fff; }
-
-        .lightbox-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 4rem; cursor: zoom-out; }
-        .lightbox-content { position: relative; max-width: 90%; max-height: 90%; }
-        .lightbox-content img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
-        .lightbox-close { position: absolute; top: -50px; right: 0; color: #fff; background: transparent; border: none; cursor: pointer; }
-
+        .prop-data { padding: 1.2rem; }
+        .prop-data h3 { font-size: 0.95rem; font-weight: 800; margin-bottom: 0.8rem; height: 2.5rem; overflow: hidden; color: #fff; }
+        .prop-price-row { display: flex; justify-content: space-between; align-items: center; }
+        .price-tag { color: #eab308; font-weight: 900; font-size: 1.1rem; }
+        .prop-actions-btns { display: flex; gap: 0.5rem; }
+        .btn-edit-mini, .btn-del-mini { background: #334155; color: #fff; border: none; padding: 0.5rem; border-radius: 6px; }
+        .btn-del-mini { background: #ef4444; }
+        .count-badge { background: #eab308; color: #020617; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: 0.5rem; }
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 3rem; }
+        .lightbox-overlay img { max-width: 90%; max-height: 90%; border-radius: 12px; }
         .institucional-textarea { width: 100%; background: #020617; border: 1px solid #1e293b; padding: 1.5rem; border-radius: 15px; color: #fff; font-size: 1.1rem; line-height: 1.6; }
-
-        @media (max-width: 1400px) { .property-grid-4 { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 1100px) { .form-grid-layout { grid-template-columns: 1fr; } .property-grid-4 { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 700px) { .property-grid-4 { grid-template-columns: 1fr; } .header-flex { flex-direction: column; gap: 1.5rem; } }
       `}</style>
     </div>
   );
