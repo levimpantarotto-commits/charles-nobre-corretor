@@ -4,7 +4,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { 
   FileText, Settings, LogOut, Plus, Trash2, Edit3, 
   Image as ImageIcon, UploadCloud, MapPin, DollarSign,
-  Search, CheckCircle, X, Maximize2, ExternalLink
+  Search, CheckCircle, X, Maximize2, ExternalLink, ChevronDown
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Footer from '@/components/Footer';
@@ -19,18 +19,13 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('properties');
   const [setupError, setSetupError] = useState(false);
   const [lightboxImg, setLightboxImg] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   
   const formRef = useRef(null);
   const [siteConfigs, setSiteConfigs] = useState({
     about_bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação — meu trabalho é conectar pessoas a espaços que fazem sentido para suas vidas.
     
-Minha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária. Lugares onde a integração entre natureza, design e bem-estar não é tendência, mas essência. Essa vivência me trouxe repertório, sensibilidade estética e uma compreensão mais profunda do que realmente torna um imóvel especial.
-    
-Ao mesmo tempo, tenho um conhecimento enraizado na região de Imbituba e arredores — conheço cada detalhe que não aparece nos mapas: os melhores pontos de pôr do sol, as áreas com maior potencial de valorização, a dinâmica das praias, do vento, do turismo e da cultura local.
-    
-Meu diferencial está justamente nessa combinação: visão global com atuação local. Ofereço uma curadoria criteriosa, focada em quem busca não apenas um endereço, mas um investimento em qualidade de vida.
-    
-Se você procura transparência, repertório e um parceiro para encontrar o seu lugar no paraíso, vamos conversar.`,
+Minha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária...`,
     contact_email: 'levimpantarotto@gmail.com',
     contact_phone: '(48) 99945-9527',
   });
@@ -94,11 +89,11 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
     else fetchSiteConfigs();
   };
 
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (!editingId) {
-      setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
-    }
+  const handleNewProperty = () => {
+    setEditingId(null);
+    setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+    setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleMultiFileUpload = async (e) => {
@@ -131,7 +126,8 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
       category: prop.category || 'Residencial',
       images: prop.images || []
     });
-    scrollToForm();
+    setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleSubmit = async (e) => {
@@ -142,13 +138,13 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
       const { error } = await supabase.from('properties').update(payload).eq('id', editingId);
       if (!error) {
         setEditingId(null);
-        setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+        setShowForm(false);
         fetchProperties();
       }
     } else {
       const { error } = await supabase.from('properties').insert([payload]);
       if (!error) {
-        setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+        setShowForm(false);
         fetchProperties();
       }
     }
@@ -159,6 +155,10 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
     if (!confirm('Excluir este imóvel?')) return;
     await supabase.from('properties').delete().eq('id', id);
     fetchProperties();
+  };
+
+  const updateImagesOrder = (newOrder) => {
+    setFormData(prev => ({ ...prev, images: newOrder }));
   };
 
   if (!session) return <AdminLogin />;
@@ -177,7 +177,7 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
             </div>
             
             <div className="header-actions">
-              <button onClick={scrollToForm} className="btn-create-head">
+              <button onClick={handleNewProperty} className="btn-create-head">
                 <Plus size={18} /> Novo Imóvel
               </button>
               <nav className="admin-nav-pills">
@@ -193,110 +193,126 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
               </button>
             </div>
           </div>
-          
-          {setupError && (
-            <div className="container mt-4">
-              <div className="setup-alert-lite">
-                <X size={16} />
-                <span>Base de dados não detectada. Algumas funções podem estar limitadas.</span>
-              </div>
-            </div>
-          )}
         </header>
 
         <div className="container content-push">
           <AnimatePresence mode="wait">
             {activeTab === 'properties' ? (
               <motion.div key="p-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {/* FORMULÁRIO DE CADASTRO */}
-                <div className="form-anchor" ref={formRef}>
-                  <section className="glass-card premium-form-layout">
-                    <div className="section-header">
-                      <div className="header-label">
-                        {editingId ? <Edit3 className="icon-edit-v4" /> : <Plus className="icon-plus-v4" />}
-                        <h2>{editingId ? 'Editando Propriedade' : 'Cadastrar Novo Imóvel'}</h2>
-                      </div>
-                      {editingId && (
-                        <button onClick={() => setEditingId(null)} className="btn-cancel-edit">Cancelar Edição</button>
-                      )}
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="form-grid-layout">
-                      <div className="form-main-fields">
-                        <div className="field-group">
-                          <label>Título do Anúncio</label>
-                          <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Casa Praia do Rosa com Vista Mar" />
-                        </div>
-                        
-                        <div className="field-row">
-                          <div className="field-group">
-                            <label>Valor (R$)</label>
-                            <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                
+                {/* FORMULÁRIO DE CADASTRO (ANIMADO E OCULTÁVEL) */}
+                <AnimatePresence>
+                  {showForm && (
+                    <motion.div 
+                      ref={formRef}
+                      initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                      animate={{ height: 'auto', opacity: 1, marginBottom: '4rem' }}
+                      exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                      className="form-overflow-hidden"
+                    >
+                      <section className="glass-card premium-form-layout">
+                        <div className="section-header">
+                          <div className="header-label">
+                            {editingId ? <Edit3 className="icon-edit-v4" /> : <Plus className="icon-plus-v4" />}
+                            <h2>{editingId ? 'Editando Propriedade' : 'Cadastrar Novo Imóvel'}</h2>
                           </div>
-                          <div className="field-group">
-                            <label>Categoria</label>
-                            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                              <option>Residencial</option>
-                              <option>Alto Padrão</option>
-                              <option>Terreno</option>
-                              <option>Comercial</option>
-                            </select>
+                          <button onClick={() => setShowForm(false)} className="btn-close-form">
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="form-grid-layout">
+                          <div className="form-main-fields">
+                            <div className="field-group">
+                              <label>Título do Anúncio</label>
+                              <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Casa Praia do Rosa com Vista Mar" />
+                            </div>
+                            
+                            <div className="field-row">
+                              <div className="field-group">
+                                <label>Valor (R$)</label>
+                                <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                              </div>
+                              <div className="field-group">
+                                <label>Categoria</label>
+                                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                                  <option>Residencial</option>
+                                  <option>Alto Padrão</option>
+                                  <option>Terreno</option>
+                                  <option>Comercial</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="field-row">
+                              <div className="field-group">
+                                <label>Cidade</label>
+                                <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}>
+                                  <option>Imbituba</option>
+                                  <option>Garopaba</option>
+                                  <option>Imaruí</option>
+                                </select>
+                              </div>
+                              <div className="field-group">
+                                <label>Bairro</label>
+                                <input type="text" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
+                              </div>
+                            </div>
+
+                            <div className="field-group">
+                              <label>Descrição</label>
+                              <textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="field-row">
-                          <div className="field-group">
-                            <label>Cidade</label>
-                            <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}>
-                              <option>Imbituba</option>
-                              <option>Garopaba</option>
-                              <option>Imaruí</option>
-                            </select>
+                          <div className="form-gallery-fields">
+                            <label>Galeria (Arraste lateralmente para ordenar)</label>
+                            <div className="dropzone-v4" onClick={() => document.getElementById('file-up').click()}>
+                              <UploadCloud size={32} />
+                              <span>Adicionar Fotos</span>
+                              <input id="file-up" type="file" multiple hidden onChange={handleMultiFileUpload} accept="image/*" />
+                            </div>
+
+                            <div className="gallery-reorder-container">
+                              <Reorder.Group 
+                                axis="x" 
+                                values={formData.images} 
+                                onReorder={updateImagesOrder} 
+                                className="reorder-flex-grid"
+                              >
+                                {formData.images.map((img, i) => (
+                                  <Reorder.Item key={img} value={img} className="reorder-item-v4">
+                                    <div className="reorder-img-card">
+                                      <img src={img} alt="" onClick={() => setLightboxImg(img)} title="Clique para ampliar" />
+                                      <button type="button" onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})} className="btn-del-img-v4">
+                                        <Trash2 size={12}/>
+                                      </button>
+                                      {i === 0 && <span className="capa-tag">CAPA</span>}
+                                    </div>
+                                  </Reorder.Item>
+                                ))}
+                              </Reorder.Group>
+                            </div>
                           </div>
-                          <div className="field-group">
-                            <label>Bairro</label>
-                            <input type="text" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
+
+                          <div className="form-submit-footer">
+                            <button type="submit" disabled={loading} className="btn-submit-v4">
+                              {loading ? 'Sincronizando...' : (editingId ? 'Salvar Alterações' : 'Publicar Imóvel')}
+                            </button>
                           </div>
-                        </div>
-
-                        <div className="field-group">
-                          <label>Descrição</label>
-                          <textarea rows="4" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-                        </div>
-                      </div>
-
-                      <div className="form-gallery-fields">
-                        <label>Galeria (Arraste para ordenar)</label>
-                        <div className="dropzone-v4" onClick={() => document.getElementById('file-up').click()}>
-                          <UploadCloud size={32} />
-                          <span>Adicionar Fotos</span>
-                          <input id="file-up" type="file" multiple hidden onChange={handleMultiFileUpload} accept="image/*" />
-                        </div>
-
-                        <Reorder.Group axis="y" values={formData.images} onReorder={imgs => setFormData({...formData, images: imgs})} className="sortable-list-v4">
-                          {formData.images.map((img, i) => (
-                            <Reorder.Item key={img} value={img} className="sortable-item-v4">
-                              <img src={img} alt="" onClick={() => setLightboxImg(img)} title="Clique para ampliar" />
-                              <button type="button" onClick={() => setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)})} className="btn-del-img-v4"><Trash2 size={14}/></button>
-                              {i === 0 && <span className="capa-tag">CAPA</span>}
-                            </Reorder.Item>
-                          ))}
-                        </Reorder.Group>
-                      </div>
-
-                      <div className="form-submit-footer">
-                        <button type="submit" disabled={loading} className="btn-submit-v4">
-                          {loading ? 'Sincronizando...' : (editingId ? 'Salvar Alterações' : 'Publicar Imóvel')}
-                        </button>
-                      </div>
-                    </form>
-                  </section>
-                </div>
+                        </form>
+                      </section>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* GRADE DE IMÓVEIS (4 COLUNAS) */}
                 <div className="properties-feed-v4">
-                  <div className="feed-header">
-                    <h2>Imóveis Ativos ({properties.length})</h2>
+                  <div className="feed-header-v4">
+                    <div className="header-meta">
+                      <CheckCircle className="text-yellow-500" size={24} />
+                      <h2>Imóveis Ativos <span className="count-badge">{properties.length}</span></h2>
+                    </div>
                   </div>
                   
                   <div className="property-grid-4">
@@ -308,7 +324,7 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
                           <div className="edit-overlay"><Edit3 size={24} /></div>
                         </div>
                         <div className="prop-data">
-                          <h3 style={{ color: '#ffffff', opacity: 1 }}>{prop.title}</h3>
+                          <h3>{prop.title}</h3>
                           <p><MapPin size={12} /> {prop.neighborhood}, {prop.city}</p>
                           <div className="prop-price-row">
                             <span className="price-tag">R$ {prop.price?.toLocaleString('pt-BR')}</span>
@@ -416,17 +432,15 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
         .btn-exit { background: transparent; border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; }
 
         .content-push { padding-top: 3rem; padding-bottom: 6rem; }
+        .form-overflow-hidden { overflow: hidden; }
         .glass-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        .premium-form-layout { padding: 3rem; margin-bottom: 5rem; }
+        .premium-form-layout { padding: 3rem; }
         
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; padding-bottom: 1.2rem; border-bottom: 1px solid #1e293b; }
         .header-label { display: flex; align-items: center; gap: 1rem; }
         .header-label h2 { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 0; font-family: 'Playfair Display', serif; }
-        .icon-plus-v4 { color: #eab308; }
-        .icon-edit-v4 { color: #38bdf8; }
-        
-        .btn-cancel-edit { color: #94a3b8; font-size: 0.85rem; font-weight: 700; background: transparent; border: none; cursor: pointer; }
-        .btn-cancel-edit:hover { color: #ef4444; }
+        .btn-close-form { background: rgba(255,255,255,0.05); color: #94a3b8; border: none; padding: 0.5rem; border-radius: 50%; cursor: pointer; transition: 0.3s; }
+        .btn-close-form:hover { background: #ef4444; color: #fff; }
 
         .form-grid-layout { display: grid; grid-template-columns: 1fr 320px; gap: 4rem; }
         .field-group { margin-bottom: 1.8rem; }
@@ -440,12 +454,10 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
           border-radius: 10px; 
           color: #fff; 
           font-size: 1rem; 
-          transition: border 0.3s;
         }
-        .field-group input:focus { border-color: #eab308; outline: none; }
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
-        .form-gallery-fields { background: rgba(30, 41, 59, 0.4); padding: 1.5rem; border-radius: 15px; border: 1px solid #1e293b; }
+        .form-gallery-fields { background: rgba(30, 41, 59, 0.4); padding: 1.5rem; border-radius: 15px; border: 1px solid #1e293b; overflow: hidden; }
         .dropzone-v4 { 
           border: 2px dashed #475569; 
           padding: 2.5rem 1rem; 
@@ -458,15 +470,15 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
           flex-direction: column; 
           align-items: center; 
           gap: 1rem;
-          transition: 0.3s;
         }
-        .dropzone-v4:hover { border-color: #eab308; color: #fff; }
 
-        .sortable-list-v4 { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; max-height: 480px; overflow-y: auto; padding-right: 0.8rem; }
-        .sortable-item-v4 { background: #0f172a; padding: 0.8rem; border-radius: 12px; border: 1px solid #1e293b; display: flex; align-items: center; gap: 1.2rem; cursor: grab; position: relative; }
-        .sortable-item-v4 img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; cursor: zoom-in; border: 1px solid #334155; }
-        .btn-del-img-v4 { background: #ef4444; color: #fff; border: none; padding: 0.4rem; border-radius: 6px; cursor: pointer; }
-        .capa-tag { font-size: 9px; background: #eab308; color: #020617; padding: 3px 8px; border-radius: 6px; font-weight: 900; position: absolute; bottom: 5px; right: 45px; }
+        .gallery-reorder-container { margin-top: 2rem; overflow-x: auto; padding-bottom: 1rem; }
+        .reorder-flex-grid { display: flex; gap: 1.2rem; min-width: max-content; padding: 0.5rem; }
+        .reorder-item-v4 { cursor: grab; }
+        .reorder-img-card { width: 100px; height: 100px; position: relative; border-radius: 12px; overflow: hidden; border: 2px solid #334155; }
+        .reorder-img-card img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-del-img-v4 { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 6px; cursor: pointer; z-index: 10; }
+        .capa-tag { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #020617; font-size: 9px; font-weight: 900; text-align: center; padding: 2px 0; }
 
         .btn-submit-v4 { 
           width: 100%; 
@@ -478,96 +490,47 @@ Se você procura transparência, repertório e um parceiro para encontrar o seu 
           font-size: 1.2rem; 
           border: none; 
           cursor: pointer; 
-          transition: scale 0.3s;
+          transition: 0.3s;
           text-transform: uppercase;
           margin-top: 2rem;
         }
-        .btn-submit-v4:hover { transform: scale(1.02); }
 
-        /* MODO GRADE 4 COLUNAS */
+        .feed-header-v4 { margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .header-meta { display: flex; align-items: center; gap: 1rem; }
+        .header-meta h2 { font-size: 1.4rem; font-weight: 800; margin: 0; color: #fff; }
+        .count-badge { background: #eab308; color: #020617; padding: 2px 10px; border-radius: 20px; font-size: 0.9rem; margin-left: 0.5rem; }
+
         .property-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5rem; }
-        .prop-card-v4 { background: #0f172a; border: 1px solid #1e293b; border-radius: 18px; overflow: hidden; transition: 0.4s; position: relative; }
+        .prop-card-v4 { background: #0f172a; border: 1px solid #1e293b; border-radius: 18px; overflow: hidden; transition: 0.4s; }
         .prop-card-v4:hover { border-color: #eab308; transform: translateY(-8px); }
         
         .prop-img-wrap { position: relative; height: 200px; cursor: pointer; overflow: hidden; }
         .prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .prop-card-v4:hover .prop-img-wrap img { scale: 1.05; }
-        
-        .edit-overlay { 
-          position: absolute; 
-          inset: 0; 
-          background: rgba(0,0,0,0.6); 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          opacity: 0; 
-          transition: 0.3s; 
-          color: #fff;
-          backdrop-filter: blur(2px);
-        }
+        .edit-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; color: #fff; }
         .prop-img-wrap:hover .edit-overlay { opacity: 1; }
         
-        .prop-badge { 
-          position: absolute; 
-          top: 15px; 
-          left: 15px; 
-          background: rgba(15, 23, 42, 0.9); 
-          color: #eab308; 
-          padding: 6px 12px; 
-          border-radius: 8px; 
-          font-size: 10px; 
-          font-weight: 900; 
-          border: 1px solid #eab308;
-          text-transform: uppercase;
-        }
+        .prop-badge { position: absolute; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.9); color: #eab308; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 900; border: 1px solid #eab308; }
         
         .prop-data { padding: 1.5rem; }
-        .prop-data h3 { 
-          font-size: 1.1rem; 
-          font-weight: 800; 
-          margin-bottom: 0.6rem; 
-          color: #fff !important; 
-          line-height: 1.4; 
-          height: 3rem;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
+        .prop-data h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.6rem; color: #fff !important; line-height: 1.4; height: 3rem; overflow: hidden; }
         .prop-data p { font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
         
         .prop-price-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.2rem; }
         .price-tag { color: #eab308; font-weight: 900; font-size: 1.2rem; }
-        .prop-actions-btns { display: flex; gap: 0.6rem; }
-        
-        .btn-edit-mini { background: #38bdf8; color: #fff; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; display: flex; }
-        .btn-del-mini { background: #ef4444; color: #fff; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; display: flex; }
+        .btn-edit-mini, .btn-del-mini { border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; display: flex; }
+        .btn-edit-mini { background: #38bdf8; color: #fff; }
+        .btn-del-mini { background: #ef4444; color: #fff; }
 
-        /* LIGHTBOX */
         .lightbox-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 4rem; cursor: zoom-out; }
         .lightbox-content { position: relative; max-width: 90%; max-height: 90%; }
-        .lightbox-content img { max-width: 100%; max-height: 90vh; border-radius: 12px; box-shadow: 0 0 100px rgba(0,0,0,0.8); }
+        .lightbox-content img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
         .lightbox-close { position: absolute; top: -50px; right: 0; color: #fff; background: transparent; border: none; cursor: pointer; }
 
-        .institucional-textarea {
-          width: 100%; 
-          background: #020617; 
-          border: 1px solid #1e293b; 
-          padding: 1.5rem; 
-          border-radius: 15px; 
-          color: #fff; 
-          font-size: 1.1rem; 
-          line-height: 1.6;
-        }
-
-        .setup-alert-lite { background: #7f1d1d; color: #fecaca; padding: 0.8rem 1.5rem; border-radius: 10px; display: flex; align-items: center; gap: 1rem; font-weight: 800; font-size: 0.85rem; }
+        .institucional-textarea { width: 100%; background: #020617; border: 1px solid #1e293b; padding: 1.5rem; border-radius: 15px; color: #fff; font-size: 1.1rem; line-height: 1.6; }
 
         @media (max-width: 1400px) { .property-grid-4 { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 1100px) { 
-          .form-grid-layout { grid-template-columns: 1fr; }
-          .property-grid-4 { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 700px) { .property-grid-4 { grid-template-columns: 1fr; } .fixed-header { padding: 1rem; } .header-flex { flex-direction: column; gap: 1.5rem; } }
+        @media (max-width: 1100px) { .form-grid-layout { grid-template-columns: 1fr; } .property-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .property-grid-4 { grid-template-columns: 1fr; } .header-flex { flex-direction: column; gap: 1.5rem; } }
       `}</style>
     </div>
   );
