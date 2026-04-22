@@ -32,7 +32,7 @@ export async function GET() {
       </Media>
       <Contact>
         <Name>Charles R. Nobre</Name>
-        <Email>contato@charlesnobre.com.br</Email>
+        <Email>levimpantarotto@gmail.com</Email>
         <Website>${baseUrl}</Website>
       </Contact>
     </Listing>
@@ -42,7 +42,7 @@ export async function GET() {
 <ListingDataFeed xmlns="http://www.viva-real.com/schemas/1.0/Vivanet" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Header>
     <Provider>Charles R. Nobre Site</Provider>
-    <Email>contato@charlesnobre.com.br</Email>
+    <Email>levimpantarotto@gmail.com</Email>
     <ContactName>Charles R. Nobre</ContactName>
   </Header>
   <Listings>
