@@ -77,13 +77,15 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.images.length === 0) return alert('Por favor, adicione pelo menos uma imagem.');
+    // Se não houver imagens, usamos uma imagem padrão do Charles
+    const finalImages = formData.images.length > 0 ? formData.images : ['/images/property1.png'];
     
     setLoading(true);
     const { error } = await supabase
       .from('properties')
       .insert([{
         ...formData,
+        images: finalImages,
         price: parseFloat(formData.price)
       }]);
 
@@ -193,26 +195,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Fotos do Imóvel</label>
-                <div className="file-input-wrapper">
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="btn-file">
-                    {uploading ? 'Subindo...' : '+ Adicionar Foto'}
-                  </label>
-                </div>
-                <div className="image-previews">
-                  {formData.images.map((img, idx) => (
-                    <img key={idx} src={img} alt="" className="preview-thumb" />
-                  ))}
-                </div>
-              </div>
+              {/* Seção de Imagem removida temporariamente conforme solicitado */}
 
               <div className="form-group">
                 <label>Descrição</label>
