@@ -101,14 +101,18 @@ export default function AdminPage() {
   useEffect(() => {
     if (isLoggedIn) {
       document.body.style.overflow = 'hidden';
-      // Remoção programática de elementos obstrutores (Navbar, Hero, Header, Footer)
-      const cleanupSelectors = ['.navbar', 'header', 'footer', '.hero-section', '.search-bar'];
-      cleanupSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          if (el) el.setAttribute('style', 'display: none !important');
+      
+      const cleanup = () => {
+        const selectors = ['.navbar', 'header', 'footer', '.hero-section', '.search-bar', '#nav'];
+        selectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => el.remove());
         });
-      });
+      };
+      
+      cleanup();
+      setTimeout(cleanup, 500);
+      setTimeout(cleanup, 2000);
 
       fetchProperties();
       fetchSiteConfigs();
@@ -120,6 +124,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem('charles_admin_auth');
     setIsLoggedIn(false);
+    window.location.reload();
   };
   
   const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '' });
@@ -152,11 +157,6 @@ export default function AdminPage() {
     } catch (err) { console.error('Error fetching configs'); }
   }
 
-  const handleUpdateConfig = async (newConfigs) => {
-    await fetch('/api/configs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newConfigs) });
-    fetchSiteConfigs();
-  };
-
   const convertGoogleDriveLink = (url) => {
     if (url.includes('drive.google.com')) {
       const match = url.match(/\/d\/(.+?)\/(view|edit)/) || url.match(/id=(.+?)(&|$)/);
@@ -184,32 +184,57 @@ export default function AdminPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    let newList;
-    const itemToSave = { ...formData, id: editingId || `imob-${Date.now()}`, price: parseFloat(formData.price) };
-    if (editingId) newList = properties.map(p => p.id === editingId ? itemToSave : p);
-    else newList = [itemToSave, ...properties];
+    try {
+      let updated;
+      if (editingId) {
+        updated = properties.map(p => p.id === editingId ? { ...formData, id: editingId } : p);
+      } else {
+        const newProperty = { ...formData, id: Date.now() };
+        updated = [newProperty, ...properties];
+      }
 
-    await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newList) });
-    setShowForm(false);
-    fetchProperties();
-    setLoading(false);
+      const res = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+
+      if (res.ok) {
+        setProperties(updated);
+        setShowForm(false);
+        setEditingId(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Excluir anúncio definitivamente?')) return;
-    const newList = properties.filter(p => p.id !== id);
-    await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newList) });
-    fetchProperties();
+  const handleUpdateConfig = async (newConfigs) => {
+    try {
+      const res = await fetch('/api/configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfigs),
+      });
+      if (res.ok) {
+        setSiteConfigs(newConfigs);
+        alert('Configurações atualizadas com sucesso.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (!initialized) return null;
-  if (!isLoggedIn) return <LocalAdminLogin onLogin={handleAttemptLogin} />;
+  if (!isLoggedIn) return <LocalAdminLogin onLogin={() => setIsLoggedIn(true)} />;
 
   return (
     <div className="admin-marketplace-layout">
       {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA E ROLAGEM */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar, #nav { display: none !important; }
+        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar, #nav { display: none !important; opacity: 0 !important; pointer-events: none !important; }
         html, body { background: #020617 !important; overflow: hidden !important; width: 100vw; height: 100vh; margin: 0; padding: 0; }
         
         .admin-marketplace-layout { 
@@ -414,7 +439,7 @@ export default function AdminPage() {
         .admin-main-container { flex-grow: 1; position: relative; overflow: hidden; }
         .layout-split { min-height: 100% }
         
-        .ads-list-panel { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; }
+        .ads-list-panel { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; width: 100%; }
         .ads-list-panel.minimized { opacity: 0.2; pointer-events: none; transform: scale(0.98); }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
         .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
@@ -422,14 +447,14 @@ export default function AdminPage() {
         .search-box { background: #0f172a; border: 1px solid #1e293b; padding: 0.6rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.8rem; width: 300px; }
         .search-box input { background: transparent; border: none; color: #fff; outline: none; font-size: 0.9rem; }
         
-        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; padding-bottom: 100px; }
+        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 100px; width: 100%; }
         .ad-card-row { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; display: flex; cursor: pointer; transition: 0.3s; }
         .ad-card-row:hover { border-color: #eab308; transform: translateY(-4px); }
-        .ad-thumb { width: 140px; height: 140px; position: relative; background: #1e293b; }
+        .ad-thumb { width: 140px; height: 140px; position: relative; background: #1e293b; flex-shrink: 0; }
         .ad-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .premium-tag { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.8); color: #eab308; font-size: 8px; font-weight: 900; padding: 3px 6px; border: 1px solid #eab308; }
-        .ad-info { padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .ad-info h3 { font-size: 0.9rem; font-weight: 800; color: #f8fafc; line-height: 1.3; }
+        .ad-info { padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+        .ad-info h3 { font-size: 0.9rem; font-weight: 800; color: #f8fafc; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ad-info p { font-size: 0.75rem; color: #64748b; margin: 4px 0; display: flex; align-items: center; gap: 4px; }
         .price { font-size: 1.1rem; font-weight: 900; color: #eab308; }
         .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 6px; border-radius: 6px; }
