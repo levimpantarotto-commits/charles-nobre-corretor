@@ -18,8 +18,17 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('properties');
+  const [setupError, setSetupError] = useState(false);
   const [siteConfigs, setSiteConfigs] = useState({
-    about_bio: '',
+    about_bio: `Sou corretor de imóveis com uma visão que vai além da simples negociação — meu trabalho é conectar pessoas a espaços que fazem sentido para suas vidas.
+
+Minha trajetória inclui experiências internacionais que ampliaram meu olhar sobre arquitetura, estilo de vida e valorização imobiliária. Lugares onde a integração entre natureza, design e bem-estar não é tendência, mas essência. Essa vivência me trouxe repertório, sensibilidade estética e uma compreensão mais profunda do que realmente torna um imóvel especial.
+
+Ao mesmo tempo, tenho um conhecimento enraizado na região de Imbituba e arredores — conheço cada detalhe que não aparece nos mapas: os melhores pontos de pôr do sol, as áreas com maior potencial de valorização, a dinâmica das praias, do vento, do turismo e da cultura local.
+
+Meu diferencial está justamente nessa combinação: visão global com atuação local. Ofereço uma curadoria criteriosa, focada em quem busca não apenas um endereço, mas um investimento em qualidade de vida.
+
+Se você procura transparência, repertório e um parceiro para encontrar o seu lugar no paraíso, vamos conversar.`,
     contact_email: 'levimpantarotto@gmail.com',
     contact_phone: '(48) 99945-9527',
   });
@@ -60,15 +69,19 @@ export default function AdminPage() {
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) console.error('Error fetching:', error);
-    else setProperties(data || []);
+    if (error) {
+      console.error('Error fetching properties:', error);
+      if (error.message.includes('relation "properties" does not exist')) setSetupError(true);
+    } else setProperties(data || []);
     setLoading(false);
   }
 
   async function fetchSiteConfigs() {
     const { data, error } = await supabase.from('site_configs').select('*');
-    if (error) console.error('Error fetching configs:', error);
-    else if (data) {
+    if (error) {
+      console.error('Error fetching configs:', error);
+      if (error.message.includes('relation "site_configs" does not exist')) setSetupError(true);
+    } else if (data) {
       const configs = {};
       data.forEach(item => { configs[item.key] = item.value; });
       setSiteConfigs(prev => ({ ...prev, ...configs }));
@@ -184,42 +197,52 @@ export default function AdminPage() {
     await supabase.auth.signOut();
   };
 
+  if (!session) return <AdminLogin />;
+
   return (
     <div className="admin-page-v3">
-      <Navbar />
-      
       <main className="admin-main">
         <header className="admin-dashboard-header">
-          <div className="container">
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }} 
-              animate={{ opacity: 1, y: 0 }}
-              className="header-content"
-            >
-              <div className="title-group">
-                <h1>Painel <span className="gold-text">Elite</span></h1>
-                <p>Gestão Profissional de Imóveis • Charles R. Nobre</p>
+          <div className="container header-container-clean">
+            <div className="admin-branding-clean">
+              <img src="/images/logo-trimmed.png" alt="Charles R. Nobre" className="admin-logo-img" />
+              <div className="branding-text">
+                <h1>Painel <span className="gold-text">Administrativo</span></h1>
+                <p>Gestão de Imóveis • Charles R. Nobre</p>
               </div>
-              
-              <div className="nav-tabs-premium">
-                <button 
-                  onClick={() => setActiveTab('properties')} 
-                  className={`tab-premium ${activeTab === 'properties' ? 'active' : ''}`}
-                >
-                  <FileText size={18} /> Imóveis
-                </button>
-                <button 
-                  onClick={() => setActiveTab('settings')} 
-                  className={`tab-premium ${activeTab === 'settings' ? 'active' : ''}`}
-                >
-                  <Settings size={18} /> Configurações
-                </button>
-                <button onClick={handleLogout} className="btn-logout-premium">
-                  <LogOut size={18} /> Sair
-                </button>
-              </div>
-            </motion.div>
+            </div>
+            
+            <div className="nav-tabs-premium">
+              <button 
+                onClick={() => setActiveTab('properties')} 
+                className={`tab-premium ${activeTab === 'properties' ? 'active' : ''}`}
+              >
+                <FileText size={18} /> Imóveis
+              </button>
+              <button 
+                onClick={() => setActiveTab('settings')} 
+                className={`tab-premium ${activeTab === 'settings' ? 'active' : ''}`}
+              >
+                <Settings size={18} /> Configurações
+              </button>
+              <button onClick={handleLogout} className="btn-logout-premium">
+                <LogOut size={18} /> Sair
+              </button>
+            </div>
           </div>
+          
+          {setupError && (
+            <div className="container" style={{ marginTop: '1rem' }}>
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                className="setup-alert-bar"
+              >
+                <AlertCircle size={20} />
+                <span>Atenção: Banco de dados não configurado. Execute o SQL no Supabase para ativar a Bio e Contatos!</span>
+              </motion.div>
+            </div>
+          )}
         </header>
 
         <div className="container dashboard-grid">
@@ -235,8 +258,8 @@ export default function AdminPage() {
                 {/* FORMULÁRIO COLUNA 1 */}
                 <section className="dashboard-card glass-card form-section">
                   <div className="card-header">
-                    <Plus className="gold-icon" />
-                    <h2>{editingId ? 'Editar Propriedade' : 'Novo Imóvel'}</h2>
+                    <Plus className="gold-icon" size={24} />
+                    <h2>{editingId ? '🛠️ Editando Imóvel' : '➕ Novo Imóvel'}</h2>
                   </div>
 
                   <form onSubmit={handleSubmit} className="premium-form">
@@ -254,8 +277,8 @@ export default function AdminPage() {
                     <div className="form-row-premium">
                       <div className="form-group-premium">
                         <label>Valor (R$)</label>
-                        <div className="input-with-icon">
-                          <DollarSign size={16} />
+                        <div className="input-with-icon-wrap">
+                          <DollarSign size={16} className="input-icon" />
                           <input 
                             type="number" 
                             required 
@@ -279,11 +302,11 @@ export default function AdminPage() {
                     </div>
 
                     <div className="form-group-premium">
-                      <label>Galeria (Arraste para organizar)</label>
+                      <label>Galeria (Clique abaixo para subir)</label>
                       <div className="dropzone-premium" onClick={() => document.getElementById('multi-upload')?.click()}>
                         <div className="dropzone-content">
                           <UploadCloud size={32} className={uploading ? 'animate-bounce' : ''} />
-                          <span>{uploading ? 'Enviando arquivos...' : 'Arraste fotos ou clique para subir'}</span>
+                          <span>{uploading ? 'Enviando arquivos...' : 'Clique para subir fotos'}</span>
                         </div>
                         <input 
                           id="multi-upload" 
@@ -336,7 +359,7 @@ export default function AdminPage() {
 
                     <div className="form-actions-premium">
                       <button type="submit" className="btn-premium-gold" disabled={loading}>
-                        {loading ? 'Sincronizando...' : (editingId ? 'Salvar Alterações' : 'Publicar Imóvel')}
+                        {loading ? 'Salvando...' : (editingId ? '💾 Atualizar Imóvel' : '🚀 Publicar Agora')}
                       </button>
                       {editingId && (
                         <button 
@@ -357,12 +380,12 @@ export default function AdminPage() {
                 {/* LISTA COLUNA 2 */}
                 <section className="dashboard-card glass-card list-section">
                   <div className="card-header">
-                    <Maximize2 size={20} className="gold-icon" />
+                    <CheckCircle size={24} className="gold-icon" />
                     <h2>Imóveis Ativos ({properties.length})</h2>
                   </div>
                   
                   <div className="property-feed-premium">
-                    {loading && properties.length === 0 ? <div className="loading-state">Dourando conteúdos...</div> : (
+                    {loading && properties.length === 0 ? <div className="loading-state">Carregando lista...</div> : (
                       properties.map(prop => (
                         <motion.div 
                           layout
@@ -370,20 +393,30 @@ export default function AdminPage() {
                           className="property-card-horizontal"
                         >
                           <div className="card-thumb">
-                            <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
+                            <img 
+                              src={prop.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop'} 
+                              alt="" 
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1000&auto=format&fit=crop';
+                              }}
+                            />
                             <div className="category-tag">{prop.category}</div>
                           </div>
                           <div className="card-info-premium">
-                            <h3>{prop.title}</h3>
-                            <div className="info-meta">
+                            <h3 style={{ color: '#ffffff', opacity: 1, textShadow: 'none' }}>{prop.title}</h3>
+                            <div className="info-meta" style={{ color: '#cbd5e1' }}>
                               <MapPin size={14} /> <span>{prop.neighborhood}, {prop.city}</span>
                             </div>
                             <div className="info-price">
                               R$ {prop.price?.toLocaleString('pt-BR')}
                             </div>
-                            <div className="card-actions-premium">
-                              <button onClick={() => handleEdit(prop)} className="btn-tool edit"><Edit3 size={16} /></button>
-                              <button onClick={() => handleDelete(prop.id)} className="btn-tool del"><Trash2 size={16} /></button>
+                            <div className="card-actions-row">
+                              <button onClick={() => handleEdit(prop)} className="btn-action edit">
+                                <Edit3 size={16} /> <span>Editar</span>
+                              </button>
+                              <button onClick={() => handleDelete(prop.id)} className="btn-action del">
+                                <Trash2 size={16} /> <span>Excluir</span>
+                              </button>
                             </div>
                           </div>
                         </motion.div>
@@ -401,7 +434,10 @@ export default function AdminPage() {
                 className="settings-grid-premium"
               >
                 <div className="dashboard-card glass-card">
-                  <h2>Institucional</h2>
+                  <div className="card-header">
+                    <FileText className="gold-icon" size={24} />
+                    <h2>Institucional</h2>
+                  </div>
                   <div className="premium-form">
                     <div className="form-group-premium">
                       <label>Bio (Texto de Apresentação)</label>
@@ -416,7 +452,10 @@ export default function AdminPage() {
                 </div>
 
                 <div className="dashboard-card glass-card">
-                  <h2>Contatos e Links</h2>
+                  <div className="card-header">
+                    <Settings className="gold-icon" size={24} />
+                    <h2>Contatos e Links</h2>
+                  </div>
                   <div className="premium-form">
                     <div className="form-group-premium">
                       <label>WhatsApp Oficial</label>
@@ -448,191 +487,180 @@ export default function AdminPage() {
 
       <style jsx>{`
         .admin-page-v3 {
-          background: #020617; /* Dark Slate */
+          background: #020617; 
           min-height: 100vh;
           color: #f8fafc;
           font-family: 'Inter', sans-serif;
         }
 
         .admin-dashboard-header {
-          background: rgba(15, 23, 42, 0.8);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-          padding: 3rem 0;
-          margin-bottom: 3rem;
+          background: #0f172a;
+          border-bottom: 2px solid #eab308;
+          padding: 1.2rem 0;
+          margin-bottom: 2.5rem;
+          position: sticky;
+          top: 0;
+          z-index: 100;
         }
 
-        .header-content {
+        .header-container-clean {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
 
+        .admin-branding-clean {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+
+        .admin-logo-img {
+          height: 55px;
+          filter: brightness(1.1);
+        }
+
+        .branding-text h1 { 
+          font-family: 'Playfair Display', serif; 
+          font-size: 1.6rem; 
+          margin: 0; 
+          color: #ffffff;
+        }
+        
+        .branding-text p { 
+          margin: 0; 
+          opacity: 1 !important; 
+          font-size: 0.8rem; 
+          color: #eab308;
+          text-transform: uppercase;
+          font-weight: 800;
+        }
+
         .gold-text { color: #eab308; }
         .gold-icon { color: #eab308; }
 
-        h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0; }
-        .title-group p { margin: 0.5rem 0 0; opacity: 0.6; font-size: 0.9rem; letter-spacing: 1px; }
-
-        .nav-tabs-premium { display: flex; gap: 1rem; align-items: center; }
+        .nav-tabs-premium { display: flex; gap: 0.8rem; align-items: center; }
 
         .tab-premium {
-          background: rgba(30, 41, 59, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 0.7rem 1.5rem;
-          border-radius: 99px;
-          color: #94a3b8;
+          background: #1e293b;
+          border: 1px solid #475569;
+          padding: 0.7rem 1.4rem;
+          border-radius: 8px;
+          color: #ffffff;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.6rem;
           cursor: pointer;
           transition: all 0.3s;
-          font-weight: 500;
+          font-weight: 700;
         }
 
         .tab-premium.active {
-          background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
+          background: #eab308;
           color: #020617;
           border-color: #eab308;
-          box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
         }
 
         .btn-logout-premium {
-          background: transparent;
-          color: #ef4444;
+          background: #ef4444;
+          color: #ffffff;
           border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 8px;
           cursor: pointer;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-weight: 600;
+          font-weight: 700;
           margin-left: 1rem;
         }
 
         .dashboard-grid { padding-bottom: 5rem; }
-        .split-view { display: grid; grid-template-columns: 1fr 1.5fr; gap: 3rem; }
+        .split-view { display: grid; grid-template-columns: 1fr 1.6fr; gap: 2.5rem; }
 
         .glass-card {
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(15px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 20px;
-          padding: 2.5rem;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+          background: #0f172a;
+          border: 1px solid #334155;
+          border-radius: 12px;
+          padding: 2rem;
         }
 
-        .card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
-        .card-header h2 { font-size: 1.4rem; margin: 0; font-family: 'Playfair Display', serif; }
+        .card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #334155; padding-bottom: 1rem; }
+        .card-header h2 { font-size: 1.4rem; margin: 0; color: #ffffff; font-weight: 800; }
 
-        /* FORM STYLES */
-        .form-group-premium { margin-bottom: 2rem; }
-        .form-group-premium label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .form-group-premium { margin-bottom: 1.5rem; }
+        .form-group-premium label { 
+          display: block; 
+          font-size: 0.85rem; 
+          font-weight: 900; 
+          margin-bottom: 0.6rem; 
+          color: #ffffff; 
+          text-transform: uppercase; 
+        }
         
         .form-group-premium input, 
         .form-group-premium select, 
         .form-group-premium textarea {
           width: 100%;
-          background: rgba(2, 6, 23, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #1e293b;
+          border: 1px solid #475569;
           padding: 1rem;
-          border-radius: 12px;
-          color: white;
-          transition: border-color 0.3s;
+          border-radius: 8px;
+          color: #ffffff;
+          font-size: 1rem;
         }
 
-        .form-group-premium input:focus { border-color: #eab308; outline: none; }
+        .input-with-icon-wrap { position: relative; }
+        .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #eab308; }
+        .input-with-icon-wrap input { padding-left: 2.8rem; }
 
-        .form-row-premium { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        .form-row-premium { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
         .dropzone-premium {
-          border: 2px dashed rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 2rem;
+          border: 2px dashed #475569;
+          border-radius: 8px;
+          padding: 2.5rem;
           text-align: center;
           cursor: pointer;
-          transition: all 0.3s;
+          background: #1e293b;
         }
-        .dropzone-premium:hover { border-color: #eab308; background: rgba(234, 179, 8, 0.05); }
 
-        .dropzone-content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0.6; }
-
-        /* GALLERY REORDER */
-        .image-sortable-grid { display: flex; gap: 0.8rem; overflow-x: auto; padding: 1rem 0; }
-        .sortable-img-item {
-          flex: 0 0 100px;
-          height: 100px;
-          border-radius: 10px;
-          overflow: hidden;
-          position: relative;
-          cursor: grab;
-          background: #000;
-        }
-        .sortable-img-item img { width: 100%; height: 100%; object-fit: cover; }
-        .sortable-img-item:active { cursor: grabbing; }
-
-        .btn-del-img { position: absolute; top: 5px; right: 5px; background: rgba(239, 68, 68, 0.8); border: none; color: white; padding: 4px; border-radius: 4px; cursor: pointer; }
-        .badge-capa { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #000; font-size: 10px; font-weight: 800; text-align: center; padding: 2px 0; }
-
-        /* PROPERTY FEED */
         .property-feed-premium { display: flex; flex-direction: column; gap: 1.5rem; }
         .property-card-horizontal {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 15px;
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-radius: 12px;
           display: flex;
           overflow: hidden;
-          transition: transform 0.3s, background 0.3s;
         }
-        .property-card-horizontal:hover { transform: translateX(10px); background: rgba(255, 255, 255, 0.04); }
 
-        .card-thumb { position: relative; width: 220px; flex-shrink: 0; }
+        .card-thumb { width: 240px; height: 180px; flex-shrink: 0; }
         .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .category-tag { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: #eab308; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 4px; }
 
-        .card-info-premium { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; }
-        .card-info-premium h3 { margin: 0 0 0.5rem; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-info-premium { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; }
+        .info-price { font-size: 1.8rem; font-weight: 900; color: #eab308; margin-top: 0.5rem; }
 
-        .info-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.8rem; }
-        .info-price { font-size: 1.3rem; font-weight: 700; color: #eab308; }
-
-        .card-actions-premium { position: absolute; right: 1.5rem; top: 1.5rem; display: flex; gap: 0.5rem; }
-        .btn-tool {
-          width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
-          cursor: pointer; border: none; transition: all 0.3s;
+        .card-actions-row { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .btn-action {
+          flex: 1; padding: 1rem; border-radius: 8px; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          font-weight: 900; text-transform: uppercase;
         }
-        .btn-tool.edit { background: rgba(56, 189, 248, 0.1); color: #38bdf8; }
-        .btn-tool.del { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-        .btn-tool:hover { transform: scale(1.1); }
+        .btn-action.edit { background: #0284c7; color: #ffffff; }
+        .btn-action.del { background: #dc2626; color: #ffffff; }
 
         .btn-premium-gold {
-          background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
-          color: #020617;
-          border: none;
-          padding: 1.2rem;
-          border-radius: 12px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: all 0.3s;
-          text-transform: uppercase;
+          background: #eab308; color: #000; padding: 1.2rem; border-radius: 8px; font-weight: 900; cursor: pointer; text-transform: uppercase;
         }
-        .btn-premium-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(234, 179, 8, 0.4); }
-
-        .btn-premium-outline {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #94a3b8;
-          padding: 1rem;
-          border-radius: 12px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .settings-grid-premium { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; }
-
-        @media (max-width: 1200px) {
-          .split-view { grid-template-columns: 1fr; }
-          .admin-dashboard-header .header-content { flex-direction: column; gap: 2rem; text-align: center; }
-        }
+        
+        .image-sortable-grid { display: flex; gap: 1rem; overflow-x: auto; padding: 1.5rem 0; }
+        .sortable-img-item { flex: 0 0 120px; height: 120px; border-radius: 8px; overflow: hidden; position: relative; }
+        .sortable-img-item img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-del-img { position: absolute; top: 5px; right: 5px; background: #ef4444; border: none; color: white; padding: 4px; border-radius: 4px; cursor: pointer; }
+        .badge-capa { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #000; font-size: 10px; font-weight: 900; text-align: center; }
+        .setup-alert-bar { background: #7f1d1d; color: #fecaca; padding: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem; }
+        .btn-premium-outline { background: transparent; border: 1px solid #475569; color: #ffffff; padding: 1rem; border-radius: 8px; cursor: pointer; }
+        .settings-grid-premium { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
       `}</style>
     </div>
   );
