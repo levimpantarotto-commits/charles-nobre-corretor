@@ -293,17 +293,17 @@ export default function AdminPage() {
         }
       ` }} />
 
-      {/* HEADER SUPERIOR FINO */}
-      <nav className="admin-top-nav">
-        <div className="flex items-center gap-6">
-          <img src="/images/logo-trimmed.png" alt="" className="h-8" />
-          <div className="h-4 w-[1px] bg-slate-800"></div>
-          <button onClick={() => setActiveTab('properties')} className={`nav-link ${activeTab === 'properties' ? 'active' : ''}`}>Meus Anúncios</button>
-          <button onClick={() => setActiveTab('settings')} className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}>Biografia</button>
+      {/* HEADER SUPERIOR ROBUSTO */}
+      <nav className="admin-top-nav-robust">
+        <div className="nav-left-group">
+          <img src="/images/logo-trimmed.png" alt="Charles R. Nobre" className="nav-logo-robust" />
+          <div className="nav-divider"></div>
+          <button onClick={() => setActiveTab('properties')} className={`nav-tab-btn ${activeTab === 'properties' ? 'active' : ''}`}>Meus Anúncios</button>
+          <button onClick={() => setActiveTab('settings')} className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}>Biografia</button>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[]}); setShowForm(true); }} className="btn-add-anuncio"><Plus size={16}/> Novo Anúncio</button>
-          <button onClick={handleLogout} className="text-slate-500 hover:text-white transition"><LogOut size={18}/></button>
+        <div className="nav-right-group">
+          <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[]}); setShowForm(true); }} className="btn-add-robust"><Plus size={16}/> Novo Anúncio</button>
+          <button onClick={handleLogout} className="btn-logout-robust"><LogOut size={18}/></button>
         </div>
       </nav>
 
@@ -460,10 +460,18 @@ export default function AdminPage() {
         )}
       </main>
       <style dangerouslySetInnerHTML={{ __html: `
-        .admin-top-nav { height: 70px; background: rgba(15, 23, 42, 0.8); backdrop-blur: 20px; border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-link { color: #64748b; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem; transition: 0.3s; }
-        .nav-link.active { color: #fff; border-bottom: 2px solid #eab308; }
-        .btn-add-anuncio { background: #eab308; color: #020617; padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem; }
+        .admin-top-nav-robust { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10000; box-sizing: border-box; }
+        .nav-left-group { display: flex; align-items: center; gap: 1.5rem; height: 100%; }
+        .nav-right-group { display: flex; align-items: center; gap: 1rem; height: 100%; }
+        .nav-logo-robust { height: 36px; width: auto; display: block; object-fit: contain; }
+        .nav-divider { height: 24px; width: 1px; background-color: #334155; margin: 0 0.5rem; }
+        .nav-tab-btn { background: transparent; border: none; color: #94a3b8; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 0; cursor: pointer; transition: 0.3s; height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box; margin-top: 2px; }
+        .nav-tab-btn:hover { color: #cbd5e1; }
+        .nav-tab-btn.active { color: #f8fafc; border-bottom-color: #eab308; }
+        .btn-add-robust { background: #eab308; color: #020617; padding: 0 1.2rem; height: 40px; border-radius: 8px; border: none; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; transition: 0.3s; box-sizing: border-box; line-height: 1; }
+        .btn-add-robust:hover { background: #facc15; transform: translateY(-1px); }
+        .btn-logout-robust { background: transparent; border: none; color: #64748b; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; transition: 0.3s; box-sizing: border-box; }
+        .btn-logout-robust:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
         
         .admin-main-container { flex-grow: 1; position: relative; overflow: hidden; }
         .layout-split { min-height: 100% }
