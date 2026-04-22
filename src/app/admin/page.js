@@ -100,8 +100,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isLoggedIn) {
+      document.body.style.overflow = 'hidden';
       fetchProperties();
       fetchSiteConfigs();
+    } else {
+      document.body.style.overflow = 'auto';
     }
   }, [isLoggedIn]);
 
@@ -195,6 +198,12 @@ export default function AdminPage() {
 
   return (
     <div className="admin-marketplace-layout">
+      {/* INJEÇÃO DE CSS GLOBAL PARA LIMPEZA TOTAL */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .navbar, header, footer, .hero-section, .navbar.scrolled, .search-bar { display: none !important; }
+        body { background: #020617; overflow: hidden !important; }
+      ` }} />
+
       {/* HEADER SUPERIOR FINO */}
       <nav className="admin-top-nav">
         <div className="flex items-center gap-6">
