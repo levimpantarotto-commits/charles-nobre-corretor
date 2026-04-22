@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import useReveal from '@/hooks/useReveal';
 
 export default function About() {
@@ -13,12 +12,15 @@ export default function About() {
 
   useEffect(() => {
     async function fetchAbout() {
-      const { data } = await supabase.from('site_configs').select('key, value');
-      if (data) {
-        const bio = data.find(c => c.key === 'about_bio')?.value;
-        const creci = data.find(c => c.key === 'about_creci')?.value;
-        if (bio) setAboutData(prev => ({ ...prev, bio }));
-        if (creci) setAboutData(prev => ({ ...prev, creci }));
+      try {
+        const res = await fetch('/api/configs');
+        const data = await res.json();
+        if (data) {
+          if (data.about_bio) setAboutData(prev => ({ ...prev, bio: data.about_bio }));
+          if (data.about_creci) setAboutData(prev => ({ ...prev, creci: data.about_creci }));
+        }
+      } catch (err) {
+        console.error('Falha ao carregar Bio local');
       }
     }
     fetchAbout();
@@ -60,114 +62,20 @@ export default function About() {
       </div>
 
       <style jsx>{`
-        .about-section {
-          background: var(--white);
-        }
-
-        .about-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 5rem;
-          align-items: center;
-        }
-
-        .about-image-wrap {
-          position: relative;
-          padding: 2rem;
-          background: #fdfcfb;
-          border: 1px solid #e5e7eb;
-          box-shadow: 20px 20px 60px #d1d9e6, -20px -20px 60px #ffffff;
-          border-radius: 2px;
-          display: flex;
-          justify-content: center;
-          align-items: flex-end;
-          overflow: hidden;
-        }
-
-        .about-image-bg {
-          position: absolute;
-          inset: 0.5rem;
-          border: 1px solid var(--secondary);
-          opacity: 0.3;
-          pointer-events: none;
-        }
-
-        .about-image {
-          position: relative;
-          z-index: 2;
-          width: 110%;
-          height: auto;
-          max-height: 550px;
-          object-fit: cover;
-          object-position: top center;
-          transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .about-image:hover {
-          transform: scale(1.03);
-        }
-
-        .about-tag {
-          color: var(--secondary);
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          font-size: 0.8rem;
-          display: block;
-          margin-bottom: 1rem;
-        }
-
-        .about-title {
-          font-size: 3rem;
-          margin-bottom: 0.5rem;
-          color: var(--primary);
-        }
-
-        .creci-badge {
-          display: inline-block;
-          background: rgba(197, 160, 89, 0.1);
-          color: var(--secondary);
-          padding: 0.4rem 1rem;
-          border-radius: 4px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          margin-bottom: 2rem;
-        }
-
-        .about-text {
-          font-size: 1.1rem;
-          color: var(--text-muted);
-          margin-bottom: 1.5rem;
-        }
-
-        .about-stats {
-          display: flex;
-          gap: 3rem;
-          margin-top: 3rem;
-        }
-
-        .stat-number {
-          display: block;
-          font-family: 'Playfair Display', serif;
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--primary);
-        }
-
-        .stat-label {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-        }
-
-        @media (max-width: 992px) {
-          .about-grid {
-            grid-template-columns: 1fr;
-            gap: 4rem;
-          }
-          .about-image-bg {
-            display: none;
-          }
-        }
+        .about-section { background: var(--white); }
+        .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+        .about-image-wrap { position: relative; padding: 2rem; background: #fdfcfb; border: 1px solid #e5e7eb; box-shadow: 20px 20px 60px #d1d9e6, -20px -20px 60px #ffffff; border-radius: 2px; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+        .about-image-bg { position: absolute; inset: 0.5rem; border: 1px solid var(--secondary); opacity: 0.3; pointer-events: none; }
+        .about-image { position: relative; z-index: 2; width: 110%; height: auto; max-height: 550px; object-fit: cover; object-position: top center; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .about-image:hover { transform: scale(1.03); }
+        .about-tag { color: var(--secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; display: block; margin-bottom: 1rem; }
+        .about-title { font-size: 3rem; margin-bottom: 0.5rem; color: var(--primary); }
+        .creci-badge { display: inline-block; background: rgba(197, 160, 89, 0.1); color: var(--secondary); padding: 0.4rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.9rem; margin-bottom: 2rem; }
+        .about-text { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .about-stats { display: flex; gap: 3rem; margin-top: 3rem; }
+        .stat-number { display: block; font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; }
+        @media (max-width: 992px) { .about-grid { grid-template-columns: 1fr; gap: 4rem; } .about-image-bg { display: none; } }
       `}</style>
     </section>
   );

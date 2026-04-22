@@ -21,12 +21,15 @@ export default function Hero() {
 
   useEffect(() => {
     async function fetchHero() {
-      const { data } = await supabase.from('site_configs').select('key, value');
-      if (data) {
-        const title = data.find(c => c.key === 'hero_title')?.value;
-        const subtitle = data.find(c => c.key === 'hero_subtitle')?.value;
-        if (title) setHeroData(prev => ({ ...prev, title }));
-        if (subtitle) setHeroData(prev => ({ ...prev, subtitle }));
+      try {
+        const res = await fetch('/api/configs');
+        const data = await res.json();
+        if (data) {
+          if (data.hero_title) setHeroData(prev => ({ ...prev, title: data.hero_title }));
+          if (data.hero_subtitle) setHeroData(prev => ({ ...prev, subtitle: data.hero_subtitle }));
+        }
+      } catch (err) {
+        console.error('Falha ao carregar Hero local');
       }
     }
     fetchHero();
