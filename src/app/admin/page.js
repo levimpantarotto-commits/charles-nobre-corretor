@@ -139,7 +139,7 @@ export default function AdminPage() {
   };
   
   const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
-  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
+  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [], video: '' });
 
   const handleAttemptLogin = (email, pass) => {
     if ((email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') || 
@@ -192,10 +192,28 @@ export default function AdminPage() {
       ...prop, 
       price: prop.price.toString(),
       city: prop.location?.city || prop.city || 'Imbituba',
-      neighborhood: prop.location?.neighborhood || prop.neighborhood || ''
+      neighborhood: prop.location?.neighborhood || prop.neighborhood || '',
+      video: prop.video || ''
     });
     setShowForm(true);
     setActiveImgIndex(0);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.')) return;
+    try {
+      const updated = properties.filter(p => p.id !== id);
+      const res = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      if (res.ok) {
+        setProperties(updated);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -315,7 +333,7 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab('settings')} className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}>Configurações</button>
         </div>
         <div className="nav-right-group">
-          <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[]}); setShowForm(true); }} className="btn-add-robust"><Plus size={16}/> Novo Anúncio</button>
+          <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[], video: ''}); setShowForm(true); }} className="btn-add-robust"><Plus size={16}/> Novo Anúncio</button>
           <button onClick={handleLogout} className="btn-logout-robust"><LogOut size={18}/></button>
         </div>
       </nav>
@@ -365,21 +383,21 @@ export default function AdminPage() {
                     <div className="col-thumbnails">
                       <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
                       <div className="thumbs-scroll-area">
-                        <div className="thumbs-grid">
+                        <Reorder.Group axis="y" values={formData.images} onReorder={(newOrder) => setFormData({...formData, images: newOrder})} className="thumbs-grid">
                           {formData.images.map((img, i) => (
-                            <div key={i} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} onClick={() => setActiveImgIndex(i)}>
+                            <Reorder.Item key={img} value={img} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} onClick={() => setActiveImgIndex(i)}>
                               <img src={img} alt="" />
                               <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}>
                                 <X size={12}/>
                               </button>
                               {i === 0 && <span className="capa-label">CAPA</span>}
-                            </div>
+                            </Reorder.Item>
                           ))}
                           {/* Slot vazio para incentivar adição */}
                           <div className="thumb-slot empty">
                             <ImageIcon size={20} className="text-slate-800" />
                           </div>
-                        </div>
+                        </Reorder.Group>
                       </div>
                       <div className="add-url-section">
                         <p className="hint">Cole o link do Google Drive abaixo:</p>
@@ -433,6 +451,10 @@ export default function AdminPage() {
                               <option>Terreno</option>
                             </select>
                           </div>
+                        </div>
+                        <div className="field">
+                          <label>Link do Vídeo Tour</label>
+                          <input type="text" value={formData.video} onChange={e => setFormData({...formData, video: e.target.value})} placeholder="Ex: /images/imob-138/garden-tour.mp4" />
                         </div>
                         <div className="field">
                           <label>Bairro</label>
