@@ -573,15 +573,16 @@ export default function AdminPage() {
         .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
         .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
         .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; }
-        .thumbs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-        .thumb-slot { aspect-ratio: 1; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .thumbs-grid { display: flex; flex-direction: column; gap: 0.8rem; width: 100%; }
+        .thumb-slot { width: 100%; height: 100px; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: start; transition: 0.3s; padding: 0.6rem; gap: 1rem; box-sizing: border-box; }
         .thumb-slot.active { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.2); }
-        .thumb-slot img { width: 100%; height: 100%; object-fit: cover; }
-        .drag-handle { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.5); color: #fff; padding: 4px; border-radius: 4px; z-index: 10; cursor: grab; opacity: 0; transition: 0.3s; }
-        .thumb-slot:hover .drag-handle { opacity: 1; }
+        .thumb-slot img { width: 80px; height: 100%; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+        .drag-handle { background: rgba(255,255,255,0.05); color: #64748b; padding: 0.8rem; border-radius: 8px; cursor: grab; transition: 0.3s; }
+        .thumb-slot:hover .drag-handle { color: #eab308; background: rgba(234, 179, 8, 0.1); }
         .drag-handle:active { cursor: grabbing; }
-        .btn-remove-photo { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 4px; z-index: 10; }
-        .capa-label { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #020617; font-size: 8px; font-weight: 900; text-align: center; }
+        .btn-remove-photo { position: absolute; top: 0.5rem; right: 0.5rem; background: #ef4444; color: #fff; border: none; padding: 6px; border-radius: 6px; z-index: 10; opacity: 0.3; transition: 0.3s; }
+        .thumb-slot:hover .btn-remove-photo { opacity: 1; }
+        .capa-label { background: #eab308; color: #020617; font-size: 8px; font-weight: 900; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
         .add-url-section { margin-top: auto; padding-top: 2rem; }
         .hint { font-size: 0.7rem; color: #64748b; margin-bottom: 0.8rem; font-weight: 800; }
         .url-form { display: flex; gap: 4px; }
