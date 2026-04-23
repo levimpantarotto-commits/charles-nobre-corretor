@@ -12,9 +12,10 @@ const getValidImageUrl = (img) => {
   return '/images/property1.png';
 };
 
-export function PropertyCard({ id, image, title, location, price, type }) {
+export function PropertyCard({ id, image, title, location, price, type, video }) {
   const [revealRef, isVisible] = useReveal();
   const [imgSrc, setImgSrc] = useState(getValidImageUrl(image));
+  const [isHovered, setIsHovered] = useState(false);
   
   const formattedPrice = typeof price === 'number' && price > 0
     ? price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -24,15 +25,36 @@ export function PropertyCard({ id, image, title, location, price, type }) {
     <div 
       ref={revealRef} 
       className={`property-card-v4 reveal ${isVisible ? 'reveal-visible' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="card-image-wrap">
-        <img 
-          src={imgSrc} 
-          alt={title} 
-          className="card-image" 
-          loading="lazy" 
-          onError={() => setImgSrc('/images/property1.png')}
-        />
+        {video && isHovered ? (
+          <video 
+            src={video} 
+            className="card-video" 
+            autoPlay 
+            muted 
+            loop 
+            playsInline 
+          />
+        ) : (
+          <img 
+            src={imgSrc} 
+            alt={title} 
+            className="card-image" 
+            loading="lazy" 
+            onError={() => setImgSrc('/images/property1.png')}
+          />
+        )}
+        
+        {video && !isHovered && (
+          <div className="video-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Vídeo
+          </div>
+        )}
+
         <span className="card-category">{type}</span>
       </div>
       <div className="card-content">
@@ -50,12 +72,15 @@ export function PropertyCard({ id, image, title, location, price, type }) {
       </div>
 
       <style jsx>{`
-        .property-card-v4 { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.4s; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 100%; }
+        .property-card-v4 { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.4s; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 100%; position: relative; }
         .property-card-v4:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .card-image-wrap { position: relative; height: 260px; overflow: hidden; background: #f1f5f9; }
-        .card-image { width: 100%; height: 100%; object-fit: cover; transition: 0.6s; }
+        .card-image-wrap { position: relative; height: 260px; overflow: hidden; background: #000; }
+        .card-image, .card-video { width: 100%; height: 100%; object-fit: cover; transition: 0.6s; }
         .property-card-v4:hover .card-image { transform: scale(1.05); }
-        .card-category { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(15, 23, 42, 0.9); color: #eab308; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid #eab308; backdrop-filter: blur(4px); }
+        
+        .video-badge { position: absolute; bottom: 1.2rem; left: 1.2rem; background: rgba(0,0,0,0.6); color: #fff; padding: 0.3rem 0.8rem; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem; backdrop-filter: blur(4px); z-index: 5; }
+
+        .card-category { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(15, 23, 42, 0.9); color: #eab308; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid #eab308; backdrop-filter: blur(4px); z-index: 5; }
         .card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
         .card-loc { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #64748b; margin-bottom: 0.8rem; font-weight: 600; }
         .card-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 1.5rem; line-height: 1.3; height: 3.2rem; overflow: hidden; }
@@ -121,6 +146,7 @@ export default function PropertyGrid() {
                 key={prop.id} 
                 id={prop.id}
                 image={prop.images?.[0]}
+                video={prop.video}
                 title={prop.title}
                 location={`${prop.neighborhood || prop.location?.neighborhood || 'Centro'}, ${prop.city || prop.location?.city || 'Imbituba'}`}
                 price={prop.price}

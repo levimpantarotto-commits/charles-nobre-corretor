@@ -10,10 +10,12 @@ import { IoChevronBack, IoChevronForward, IoClose, IoExpandOutline } from 'react
 export default function PropertyDetail() {
   const params = useParams();
   const { openLeadModal } = useLead();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
   const property = listings.find(p => p.id === params.id);
+  
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [showVideo, setShowVideo] = useState(!!property?.video);
 
   useEffect(() => {
     if (isLightboxOpen) {
@@ -39,12 +41,22 @@ export default function PropertyDetail() {
 
   const nextImage = (e) => {
     e?.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+    if (showVideo) {
+      setShowVideo(false);
+      setCurrentImageIndex(0);
+    } else {
+      setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+    }
   };
 
   const prevImage = (e) => {
     e?.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    if (showVideo) {
+      setShowVideo(false);
+      setCurrentImageIndex(property.images.length - 1);
+    } else {
+      setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    }
   };
 
   const openLightbox = () => setIsLightboxOpen(true);
@@ -73,17 +85,34 @@ export default function PropertyDetail() {
           </div>
 
           <div className="property-gallery-container">
-            <div className="property-gallery" onClick={openLightbox}>
+            <div className="property-gallery">
               <div className="main-image-wrapper">
-                <img 
-                  src={property.images[currentImageIndex]} 
-                  alt={property.title} 
-                  className="main-display-img"
-                />
-                <div className="expand-hint">
-                  <IoExpandOutline /> Clique para ampliar
-                </div>
-                {property.images.length > 1 && (
+                {showVideo && property.video ? (
+                  <video 
+                    src={property.video} 
+                    className="main-display-img" 
+                    controls 
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                  />
+                ) : (
+                  <img 
+                    src={property.images[currentImageIndex]} 
+                    alt={property.title} 
+                    className="main-display-img"
+                    onClick={openLightbox}
+                  />
+                )}
+                
+                {!showVideo && (
+                  <div className="expand-hint" onClick={openLightbox}>
+                    <IoExpandOutline /> Clique para ampliar
+                  </div>
+                )}
+
+                {(property.images.length > 1 || property.video) && (
                   <div className="gallery-nav-overlay">
                     <button className="nav-btn-overlay prev" onClick={prevImage}><IoChevronBack /></button>
                     <button className="nav-btn-overlay next" onClick={nextImage}><IoChevronForward /></button>
@@ -91,13 +120,26 @@ export default function PropertyDetail() {
                 )}
               </div>
             </div>
-            {property.images.length > 1 && (
+            
+            {(property.images.length > 1 || property.video) && (
               <div className="gallery-thumbs">
+                {property.video && (
+                  <div 
+                    className={`thumb video-thumb ${showVideo ? 'active' : ''}`}
+                    onClick={() => setShowVideo(true)}
+                  >
+                    <div className="video-icon-overlay">▶</div>
+                    <video src={property.video} muted />
+                  </div>
+                )}
                 {property.images.map((img, idx) => (
                   <div 
                     key={idx} 
-                    className={`thumb ${idx === currentImageIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`thumb ${(!showVideo && idx === currentImageIndex) ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowVideo(false);
+                      setCurrentImageIndex(idx);
+                    }}
                     style={{ backgroundImage: `url(${img})` }}
                   />
                 ))}
@@ -188,6 +230,11 @@ export default function PropertyDetail() {
         .thumb { width: 120px; height: 80px; background-size: cover; background-position: center; border-radius: 6px; cursor: pointer; opacity: 0.6; transition: all 0.3s; border: 3px solid transparent; flex-shrink: 0; }
         .thumb:hover { opacity: 0.9; }
         .thumb.active { opacity: 1; border-color: var(--secondary); transform: translateY(-3px); }
+
+        .video-thumb { position: relative; overflow: hidden; background: #000; }
+        .video-thumb video { width: 100%; height: 100%; object-fit: cover; opacity: 0.4; }
+        .video-icon-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 1.5rem; z-index: 2; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .video-thumb.active video { opacity: 0.8; }
 
         .property-grid-layout { display: grid; grid-template-columns: 1fr 380px; gap: 4rem; }
         .features-strip { display: flex; gap: 2rem; padding: 2rem; background: #f9f9f9; border-radius: 12px; margin-bottom: 3rem; flex-wrap: wrap; border: 1px solid #f0f0f0; }
