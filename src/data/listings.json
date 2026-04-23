@@ -11,26 +11,13 @@
     "price": 927000,
     "type": "Apartamento",
     "intent": "venda",
-    "category": "Residencial",
+    "category": "Alto Padrão",
     "images": [
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/ee031883-20ea-4708-89ec-3931ae5a511a1746737997BhiE.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/cd5fc0ba-7bef-4259-9373-aee488f20acc1746737997DlNg.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/e5ec74b8-2932-4fa1-892f-07eb4eca53071746738015xPEe.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/70b22fe1-ff7d-4eb5-bd6f-f56f38038c1f1746737999KQgQ.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/172d6904-3706-4cf5-a6d6-b2dc2d5aa2541746737999prVB.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/209fb8e0-b5f7-41ed-91ae-cf2b3e87a1ab1746737999kLn1.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/2681c2da-e7b6-4ba2-863b-e05284c32bd61746738009KkZJ.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/e96d6cd3-bbd2-4cdc-93e9-5247075472c31746738012dj2f.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/f96bc1b6-0566-4b66-a1f9-2f5fdd36a3d11746738013lchC.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/fd2472fa-db6a-4510-84dd-2d4c1a08b5c617467380130GoN.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/8b21c51f-d8b4-4014-9961-2b7f0ff684211746738013VpWu.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/8bfe541a-7d7e-4ed0-ae30-af2266b9c3581746738012D681.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/60bc5203-89a3-42a7-a315-9133efb476371746738015csDw.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/9a812531-f6af-4e1f-a280-6935fbbae8291746738017JPt6.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/ff18cbe6-828c-4459-856a-fa157deba95017467380195BPV.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/a0d400ea-1172-4bb3-81ea-1ae972e2723d1746738019POK1.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/4e7d41ae-4e76-48e4-ac6e-6c1eb036b9301746738019HBmy.jpg",
-      "https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grq6lwb4htd1/b/80506c6c-2fa1-492f-ada9-fe56f3ee8e7c/o/properties/a90c9fca-611e-418d-9cd2-286e0e3cae2c/images/94553704-34e2-477c-a261-7f6d196424061746738019RoL7.jpg"
+      "/images/imob-138/img1.jpg", "/images/imob-138/img2.jpg", "/images/imob-138/img3.jpg", "/images/imob-138/img4.jpg",
+      "/images/imob-138/img5.jpg", "/images/imob-138/img6.jpg", "/images/imob-138/img7.jpg", "/images/imob-138/img8.jpg",
+      "/images/imob-138/img9.jpg", "/images/imob-138/img10.jpg", "/images/imob-138/img11.jpg", "/images/imob-138/img12.jpg",
+      "/images/imob-138/img13.jpg", "/images/imob-138/img14.jpg", "/images/imob-138/img15.jpg", "/images/imob-138/img16.jpg",
+      "/images/imob-138/img17.jpg", "/images/imob-138/img18.jpg"
     ],
     "features": ["3 Dormitórios (1 Suíte)", "Mobiliado", "Sacada Gourmet", "Piscina no Terraço", "Academia", "Vaga de Garagem"],
     "area": 99.45
@@ -59,5 +46,24 @@
     ],
     "features": ["Suíte Master", "Forno a Lenha / Pizza", "Amplo Terreno (500m²)", "Varanda Gourmet", "Vista Pôr do Sol", "Área de 144m²"],
     "area": 144
+  },
+  {
+    "id": "imob-airbnb-1",
+    "title": "Apto de 4 quartos no centro",
+    "description": "Venha ficar no coração de Imbituba. Nosso prédio tem 01 exclusivo apartamento de 1º andar localizado no centro da cidade, perto de todas as principais atrações e comodidades. O imóvel é perfeito para famílias ou grupos de amigos que desejam ter uma base confortável e segura durante a sua estadia na região. Além disso, o prédio conta com uma série de comodidades, incluindo churrasqueira, Garagem entrada automatizada, área de serviço com jacuzzi e espaçosos ambientes.",
+    "location": {
+      "city": "Imbituba",
+      "neighborhood": "Centro",
+      "state": "SC"
+    },
+    "price": 1490000,
+    "type": "Apartamento",
+    "intent": "venda",
+    "category": "Residencial",
+    "images": [
+      "/images/airbnb-novo/img1.jpg"
+    ],
+    "features": ["3 Dormitórios (1 Suíte)", "Jacuzzi Exclusiva", "Churrasqueira", "Garagem Elétrica", "Suíte com Closet", "Ar Condicionado"],
+    "area": 0
   }
 ]

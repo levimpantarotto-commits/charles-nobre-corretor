@@ -142,7 +142,8 @@ export default function AdminPage() {
   const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [] });
 
   const handleAttemptLogin = (email, pass) => {
-    if (email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') {
+    if ((email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') || 
+        (email === 'charlesrnobre@gmail.com' && pass === 'Imbituba4Forever')) {
       localStorage.setItem('charles_admin_auth', 'true');
       setIsLoggedIn(true);
     } else {
@@ -454,6 +455,10 @@ export default function AdminPage() {
         ) : (
           /* CONFIGURAÇÕES GERAIS */
           <div className="max-w-4xl mx-auto p-10">
+            <div className="admin-header-content">
+              <h1 style={{ color: '#fff', margin: 0 }}>Meus Anúncios</h1>
+              <p style={{ color: '#fff', opacity: 0.8, margin: '5px 0 0 0' }}>Gerencie suas propriedades e configurações do site</p>
+            </div>
             <div className="glass-panel p-10">
               <h2 className="text-2xl font-black mb-6">Configurações Gerais do Site</h2>
               
@@ -511,7 +516,7 @@ export default function AdminPage() {
         .ads-list-panel { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; width: 100%; }
         .ads-list-panel.minimized { opacity: 0.2; pointer-events: none; transform: scale(0.98); }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
-        .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+        .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; color: #fff; }
         .badge { background: #1e293b; color: #eab308; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: 0.5rem; }
         .search-box { background: #0f172a; border: 1px solid #1e293b; padding: 0.6rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.8rem; width: 300px; }
         .search-box input { background: transparent; border: none; color: #fff; outline: none; font-size: 0.9rem; }

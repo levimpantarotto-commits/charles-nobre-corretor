@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useReveal from '@/hooks/useReveal';
 import { useLead } from '@/context/LeadContext';
 
@@ -9,6 +9,22 @@ export default function Contact() {
   const [formRef, formVisible] = useReveal();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [contactInfo, setContactInfo] = useState({ phone: '', email: '' });
+
+  useEffect(() => {
+    async function fetchConfigs() {
+      try {
+        const res = await fetch('/api/configs');
+        const data = await res.json();
+        if (data) {
+          setContactInfo({ phone: data.phone, email: data.email });
+        }
+      } catch (err) {
+        console.error('Falha ao carregar configs no contato');
+      }
+    }
+    fetchConfigs();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,7 +74,7 @@ export default function Contact() {
             </div>
             <div className="detail-item">
               <span className="detail-label">Atendimento</span>
-              <button onClick={() => openLeadModal()} className="detail-value-btn">+55 (48) 99945-9527</button>
+              <button onClick={() => openLeadModal()} className="detail-value-btn">{contactInfo.phone || '+55 (48) 99945-9527'}</button>
             </div>
           </div>
         </div>
