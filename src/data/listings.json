@@ -49,21 +49,25 @@
   },
   {
     "id": "imob-airbnb-1",
-    "title": "Apto de 4 quartos no centro",
-    "description": "Venha ficar no coração de Imbituba. Nosso prédio tem 01 exclusivo apartamento de 1º andar localizado no centro da cidade, perto de todas as principais atrações e comodidades. O imóvel é perfeito para famílias ou grupos de amigos que desejam ter uma base confortável e segura durante a sua estadia na região. Além disso, o prédio conta com uma série de comodidades, incluindo churrasqueira, Garagem entrada automatizada, área de serviço com jacuzzi e espaçosos ambientes.",
+    "title": "Prédio Inteiro com Apto de Luxo - Centro",
+    "description": "Oportunidade exclusiva no coração de Imbituba. Prédio inteiro com apartamento de alto padrão no primeiro andar. Localização estratégica a apenas 5 quadras da Praia da Vila e próximo a supermercados e conveniências. O imóvel possui uma área de lazer privativa espetacular com Jacuzzi e Churrasqueira. Suíte master com walk-in closet, ar-condicionado e acabamentos de primeira linha. Garagem coberta com entrada automatizada (estilo americano).",
     "location": {
       "city": "Imbituba",
       "neighborhood": "Centro",
       "state": "SC"
     },
     "price": 1490000,
-    "type": "Apartamento",
+    "type": "Prédio",
     "intent": "venda",
-    "category": "Residencial",
+    "category": "Comercial/Residencial",
     "images": [
-      "/images/airbnb-novo/img1.jpg"
+      "/images/imob-airbnb-centro/img1.jpg", "/images/imob-airbnb-centro/img2.jpg", "/images/imob-airbnb-centro/img3.jpg", "/images/imob-airbnb-centro/img4.jpg",
+      "/images/imob-airbnb-centro/img5.jpg", "/images/imob-airbnb-centro/img6.jpg", "/images/imob-airbnb-centro/img7.jpg", "/images/imob-airbnb-centro/img8.jpg",
+      "/images/imob-airbnb-centro/img9.jpg", "/images/imob-airbnb-centro/img10.jpg", "/images/imob-airbnb-centro/img11.jpg", "/images/imob-airbnb-centro/img12.jpg",
+      "/images/imob-airbnb-centro/img13.jpg", "/images/imob-airbnb-centro/img14.jpg", "/images/imob-airbnb-centro/img15.jpg", "/images/imob-airbnb-centro/img16.jpg",
+      "/images/imob-airbnb-centro/img17.jpg", "/images/imob-airbnb-centro/img18.jpg", "/images/imob-airbnb-centro/img19.jpg", "/images/imob-airbnb-centro/img20.jpg"
     ],
-    "features": ["3 Dormitórios (1 Suíte)", "Jacuzzi Exclusiva", "Churrasqueira", "Garagem Elétrica", "Suíte com Closet", "Ar Condicionado"],
-    "area": 0
+    "features": ["Jacuzzi Privativa", "Área de Churrasco", "Suíte com Closet", "Garagem Americana", "Localização Central", "5 Quadras da Praia"],
+    "area": 220
   }
 ]
