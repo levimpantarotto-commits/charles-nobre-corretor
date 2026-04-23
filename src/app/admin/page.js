@@ -383,9 +383,21 @@ export default function AdminPage() {
                     <div className="col-thumbnails">
                       <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
                       <div className="thumbs-scroll-area">
-                        <Reorder.Group axis="y" values={formData.images} onReorder={(newOrder) => setFormData({...formData, images: newOrder})} className="thumbs-grid">
+                        <Reorder.Group values={formData.images} onReorder={(newOrder) => setFormData({...formData, images: newOrder})} className="thumbs-grid">
                           {formData.images.map((img, i) => (
-                            <Reorder.Item key={img} value={img} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} onClick={() => setActiveImgIndex(i)}>
+                            <Reorder.Item 
+                              key={img} 
+                              value={img} 
+                              className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} 
+                              onClick={() => setActiveImgIndex(i)}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              layout
+                            >
+                              <div className="drag-handle">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 11V7h2v4H7zm0 6v-4h2v4H7zm6-6V7h2v4h-2zm0 6v-4h2v4h-2zm6-6V7h2v4h-2zm0 6v-4h2v4h-2z"/></svg>
+                              </div>
                               <img src={img} alt="" />
                               <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}>
                                 <X size={12}/>
@@ -565,7 +577,10 @@ export default function AdminPage() {
         .thumb-slot { aspect-ratio: 1; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
         .thumb-slot.active { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.2); }
         .thumb-slot img { width: 100%; height: 100%; object-fit: cover; }
-        .btn-remove-photo { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 4px; }
+        .drag-handle { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.5); color: #fff; padding: 4px; border-radius: 4px; z-index: 10; cursor: grab; opacity: 0; transition: 0.3s; }
+        .thumb-slot:hover .drag-handle { opacity: 1; }
+        .drag-handle:active { cursor: grabbing; }
+        .btn-remove-photo { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #fff; border: none; padding: 4px; border-radius: 4px; z-index: 10; }
         .capa-label { position: absolute; bottom: 0; left: 0; right: 0; background: #eab308; color: #020617; font-size: 8px; font-weight: 900; text-align: center; }
         .add-url-section { margin-top: auto; padding-top: 2rem; }
         .hint { font-size: 0.7rem; color: #64748b; margin-bottom: 0.8rem; font-weight: 800; }
