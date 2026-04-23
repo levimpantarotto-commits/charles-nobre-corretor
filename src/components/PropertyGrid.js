@@ -150,7 +150,7 @@ export default function PropertyGrid() {
                 title={prop.title}
                 location={`${prop.neighborhood || prop.location?.neighborhood || 'Centro'}, ${prop.city || prop.location?.city || 'Imbituba'}`}
                 price={prop.price}
-                type={prop.category || prop.type}
+                type={prop.type || prop.category || 'Imóvel'}
               />
             ))}
           </div>

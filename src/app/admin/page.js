@@ -356,7 +356,6 @@ export default function AdminPage() {
                   <div key={prop.id} className="ad-card-row" onClick={() => handleEdit(prop)}>
                     <div className="ad-thumb">
                       <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
-                      {prop.category === 'Alto Padrão' && <span className="premium-tag">PREMIUM</span>}
                     </div>
                     <div className="ad-info">
                       <h3>{prop.title}</h3>
