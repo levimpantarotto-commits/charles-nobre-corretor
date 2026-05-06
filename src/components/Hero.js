@@ -7,13 +7,6 @@ import SearchBar from './SearchBar';
 export default function Hero() {
   const { openLeadModal } = useLead();
   const [revealRef, isVisible] = useReveal();
-  const [currentImage, setCurrentImage] = useState(0);
-
-  const images = [
-    '/images/hero-rosa.png',
-    '/images/hero-whale.png'
-  ];
-
   const [heroData, setHeroData] = useState({
     title: 'Realizando sonhos no litoral de Santa Catarina',
     subtitle: 'Especialista em propriedades exclusivas em Imbituba, Garopaba e Imaruí. Consultoria personalizada para o seu melhor investimento.'
@@ -33,22 +26,23 @@ export default function Hero() {
       }
     }
     fetchHero();
-
-    const timer = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % images.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [images.length]);
+  }, []);
 
   return (
     <section className="hero">
-      {images.map((img, index) => (
-        <div 
-          key={img}
-          className={`hero-bg ${index === currentImage ? 'active' : ''}`}
-          style={{ backgroundImage: `url(${img})` }}
-        ></div>
-      ))}
+      <div className="hero-video-wrap">
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          className="hero-video"
+          poster="/images/hero-rosa.png"
+        >
+          <source src="/videos/site-video.mp4" type="video/mp4" />
+        </video>
+        <div className="hero-video-overlay"></div>
+      </div>
       
       <div className="hero-top-overlay"></div>
       <div className="hero-overlay"></div>
@@ -82,23 +76,28 @@ export default function Hero() {
           overflow: hidden;
         }
 
-        .hero-bg {
+        .hero-video-wrap {
           position: absolute;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background-size: cover;
-          background-position: center;
-          opacity: 0;
-          transition: opacity 1.5s ease-in-out, transform 8s ease-out;
-          transform: scale(1.1);
           z-index: 0;
         }
 
-        .hero-bg.active {
-          opacity: 1;
-          transform: scale(1);
+        .hero-video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .hero-video-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.3);
           z-index: 1;
         }
 
