@@ -1,4 +1,5 @@
 'use client';
+// Trigger redeploy after project resume
 import { useState, useEffect } from 'react';
 import useReveal from '@/hooks/useReveal';
 import { useLead } from '@/context/LeadContext';
