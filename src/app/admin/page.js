@@ -70,6 +70,17 @@ function LocalAdminLogin({ onLogin, error, submitting }) {
 }
 
 // ===== CATÁLOGO =====
+const emptyStyle = {
+  padding: '4rem',
+  textAlign: 'center',
+  color: '#475569',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '0.8rem',
+  gridColumn: '1 / -1',
+};
+
 function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm, formData, setFormData, onSubmit, onCancel, externalUrl, setExternalUrl, activeImgIndex, setActiveImgIndex, loading, searchTerm, setSearchTerm, editingId }) {
   const stats = useMemo(() => {
     const total = properties.length;
@@ -152,30 +163,53 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
         </div>
       </div>
 
-      <div className="ads-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
         {filtered.map((prop) => (
-          <div key={prop.id} className="ad-card" onClick={() => onEdit(prop)}>
-            <div className="ad-thumb">
-              <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
+          <div
+            key={prop.id}
+            onClick={() => onEdit(prop)}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #1e293b',
+              borderRadius: 12,
+              overflow: 'hidden',
+              display: 'flex',
+              cursor: 'pointer',
+              transition: '0.2s',
+              minHeight: 130,
+            }}
+          >
+            <div style={{ width: 130, height: 130, flexShrink: 0, background: '#1e293b' }}>
+              <img
+                src={prop.images?.[0] || '/images/property1.png'}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             </div>
-            <div className="ad-info">
-              <h3>{prop.title}</h3>
-              <p><MapPin size={12}/> {prop.neighborhood || 'N/A'}, {prop.city || 'N/A'}</p>
-              <div className="ad-foot">
-                <span className="price">R$ {prop.price?.toLocaleString('pt-BR')}</span>
-                <div className="actions">
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(prop); }} className="btn-icon"><Edit3 size={13}/></button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(prop.id); }} className="btn-icon danger"><Trash2 size={13}/></button>
+            <div style={{ padding: '0.9rem', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                {prop.title}
+              </h3>
+              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '4px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <MapPin size={12}/> {prop.neighborhood || 'N/A'}, {prop.city || 'N/A'}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#eab308' }}>
+                  R$ {prop.price?.toLocaleString('pt-BR')}
+                </span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={(e) => { e.stopPropagation(); onEdit(prop); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: 6, borderRadius: 6, cursor: 'pointer' }}><Edit3 size={13}/></button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(prop.id); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#ef4444', padding: 6, borderRadius: 6, cursor: 'pointer' }}><Trash2 size={13}/></button>
                 </div>
               </div>
             </div>
           </div>
         ))}
         {filtered.length === 0 && loading && (
-          <div className="empty-grid"><ImageIcon size={32} /> Carregando imóveis...</div>
+          <div style={emptyStyle}><ImageIcon size={32} /> Carregando imóveis...</div>
         )}
         {filtered.length === 0 && !loading && properties.length === 0 && (
-          <div className="empty-grid">
+          <div style={emptyStyle}>
             <ImageIcon size={32} />
             <strong style={{ color: '#94a3b8' }}>Nenhum imóvel cadastrado.</strong>
             <small style={{ color: '#475569' }}>Clique em "Novo" pra começar, ou verifique a conexão com o Supabase.</small>
@@ -183,7 +217,7 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
           </div>
         )}
         {filtered.length === 0 && !loading && properties.length > 0 && (
-          <div className="empty-grid"><ImageIcon size={32} /> Nenhum imóvel bate com a busca.</div>
+          <div style={emptyStyle}><ImageIcon size={32} /> Nenhum imóvel bate com a busca.</div>
         )}
       </div>
 
