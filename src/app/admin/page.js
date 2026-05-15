@@ -1,203 +1,100 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
-  FileText, Settings, LogOut, Plus, Trash2, Edit3,
-  Image as ImageIcon, MapPin, Search, X, Maximize2,
-  ChevronLeft, ChevronRight, Link as LinkIcon, Save, Info
+  Plus, Trash2, Edit3, Image as ImageIcon, MapPin, Search, X,
+  ChevronLeft, ChevronRight, Save,
+  Home as HomeIcon, TrendingUp, MapPinned, DollarSign,
 } from 'lucide-react';
-import Footer from '@/components/Footer';
+import Sidebar from './_components/Sidebar';
+import LeadsKanban from './_components/LeadsKanban';
 
-// Componente de Login Simples e Profissional
+// ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
 
   return (
     <div style={{
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#020617',
-      position: 'fixed',
-      inset: 0,
-      zIndex: 9999,
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: '#020617', position: 'fixed', inset: 0, zIndex: 9999,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       <div style={{
-        width: '100%',
-        maxWidth: '420px',
-        borderRadius: '40px',
-        border: '1px solid rgba(234, 179, 8, 0.1)',
-        backgroundColor: '#0f172a',
-        padding: '3.5rem',
-        textAlign: 'center',
-        boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.6)',
-        color: '#fff'
+        width: '100%', maxWidth: '420px', borderRadius: '40px',
+        border: '1px solid rgba(234, 179, 8, 0.1)', backgroundColor: '#0f172a',
+        padding: '3.5rem', textAlign: 'center', boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.6)', color: '#fff',
       }}>
         <img src="/images/logo-trimmed.png" alt="" style={{ height: '50px', margin: '0 auto 2.5rem', objectFit: 'contain' }} />
         <h2 style={{ marginBottom: '2.5rem', fontSize: '0.65rem', fontWeight: 900, color: '#eab308', textTransform: 'uppercase', letterSpacing: '0.3em' }}>
           Acesso Administrativo
         </h2>
-        
         <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
           <div style={{ marginBottom: '1.2rem' }}>
-            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>E-mail Administrativo</label>
-            <input 
-              type="email" 
-              placeholder="seu@email.com"
-              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }} 
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
+            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>E-mail</label>
+            <input
+              type="email" placeholder="seu@email.com"
+              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }}
+              value={email} onChange={e => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>Senha de Acesso</label>
-            <input 
-              type="password" 
-              placeholder="••••••••"
-              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }} 
-              value={pass} 
-              onChange={e => setPass(e.target.value)}
+            <label style={{ fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', marginLeft: '0.8rem', marginBottom: '0.6rem', display: 'block' }}>Senha</label>
+            <input
+              type="password" placeholder="••••••••"
+              style={{ width: '100%', borderRadius: '18px', backgroundColor: '#020617', padding: '1.2rem', color: '#fff', border: '1px solid #1e293b', outline: 'none', fontSize: '14px' }}
+              value={pass} onChange={e => setPass(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onLogin(email, pass)}
             />
           </div>
         </div>
-
         <button
-          onClick={() => onLogin(email, pass)}
-          disabled={submitting}
+          onClick={() => onLogin(email, pass)} disabled={submitting}
           style={{ width: '100%', borderRadius: '18px', backgroundColor: submitting ? '#a16207' : '#eab308', padding: '1.4rem', fontWeight: 900, color: '#020617', border: 'none', cursor: submitting ? 'wait' : 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 10px 30px rgba(234, 179, 8, 0.2)' }}
         >
-          {submitting ? 'Verificando...' : 'Entrar no Painel'}
+          {submitting ? 'Verificando...' : 'Entrar'}
         </button>
         {error && (
-          <p style={{ marginTop: '1.5rem', fontSize: '11px', color: '#ef4444', fontWeight: 700 }}>
-            {error}
-          </p>
+          <p style={{ marginTop: '1.5rem', fontSize: '11px', color: '#ef4444', fontWeight: 700 }}>{error}</p>
         )}
         <p style={{ marginTop: '2.5rem', fontSize: '9px', color: '#334155', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-          Autenticação Server-Side • v6.0
+          Charles R. Nobre • v7.0
         </p>
       </div>
     </div>
   );
 }
 
-export default function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [initialized, setInitialized] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('properties');
-  const [showForm, setShowForm] = useState(false);
-  const [externalUrl, setExternalUrl] = useState('');
-  const [activeImgIndex, setActiveImgIndex] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loginSubmitting, setLoginSubmitting] = useState(false);
+// ===== CATÁLOGO =====
+function CatalogTab({ properties, onCreate, onEdit, onDelete, showForm, formData, setFormData, onSubmit, onCancel, externalUrl, setExternalUrl, activeImgIndex, setActiveImgIndex, loading, searchTerm, setSearchTerm, editingId }) {
+  const stats = useMemo(() => {
+    const total = properties.length;
+    const byType = {};
+    const byCity = {};
+    let priceSum = 0;
+    let withPrice = 0;
+    properties.forEach((p) => {
+      const t = p.type || 'Outro';
+      byType[t] = (byType[t] || 0) + 1;
+      const c = p.city || 'Outro';
+      byCity[c] = (byCity[c] || 0) + 1;
+      if (p.price > 0) { priceSum += p.price; withPrice++; }
+    });
+    const avgPrice = withPrice > 0 ? priceSum / withPrice : 0;
+    const topType = Object.entries(byType).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    const topCity = Object.entries(byCity).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    return { total, avgPrice, topType, topCity };
+  }, [properties]);
 
-  // Checa sessão no servidor
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/admin/status', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((data) => { if (alive) setIsLoggedIn(Boolean(data?.authenticated)); })
-      .catch(() => {})
-      .finally(() => { if (alive) setInitialized(true); });
-    return () => { alive = false; };
-  }, []);
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      document.body.style.overflow = 'hidden';
-      
-      const cleanup = () => {
-        // REMOÇÃO FÍSICA AGRESSIVA (SOBERANIA TOTAL)
-        const selectors = [
-          '.navbar', 'header', 'footer', '.hero-section', 
-          '.search-bar', '#nav', '[class*="Navbar"]', '[class*="Hero"]'
-        ];
-        selectors.forEach(selector => {
-          const elements = document.querySelectorAll(selector);
-          elements.forEach(el => {
-            el.style.display = 'none';
-            el.style.opacity = '0';
-            el.style.pointerEvents = 'none';
-            el.remove(); // Tenta remover fisicamente se possível
-          });
-        });
-      };
-      
-      cleanup();
-      setTimeout(cleanup, 300);
-      setTimeout(cleanup, 1000);
-      setTimeout(cleanup, 3000); // Garante a remoção após hidratação completa
-
-      fetchProperties();
-      fetchSiteConfigs();
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-  }, [isLoggedIn]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
-    } catch (err) {
-      console.error(err);
-    }
-    setIsLoggedIn(false);
-    window.location.href = '/admin';
-  };
-  
-  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
-  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [], video: '' });
-
-  const handleAttemptLogin = async (email, pass) => {
-    setLoginError('');
-    setLoginSubmitting(true);
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, pass }),
-      });
-      if (res.ok) {
-        setIsLoggedIn(true);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setLoginError(data.error || 'Credenciais inválidas.');
-      }
-    } catch (err) {
-      console.error(err);
-      setLoginError('Erro de rede.');
-    } finally {
-      setLoginSubmitting(false);
-    }
-  };
-
-  async function fetchProperties() {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/properties');
-      const data = await res.json();
-      setProperties(data || []);
-    } catch (err) { console.error('Error fetching properties'); }
-    finally { setLoading(false); }
-  }
-
-  async function fetchSiteConfigs() {
-    try {
-      const res = await fetch('/api/configs');
-      const data = await res.json();
-      setSiteConfigs(data);
-    } catch (err) { console.error('Error fetching configs'); }
-  }
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return properties;
+    return properties.filter((p) =>
+      p.title.toLowerCase().includes(q) ||
+      (p.city || '').toLowerCase().includes(q) ||
+      (p.neighborhood || '').toLowerCase().includes(q)
+    );
+  }, [properties, searchTerm]);
 
   const convertGoogleDriveLink = (url) => {
     if (url.includes('drive.google.com')) {
@@ -216,6 +113,411 @@ export default function AdminPage() {
     setActiveImgIndex(formData.images.length);
   };
 
+  return (
+    <div className="catalog-wrap">
+      <div className="catalog-head">
+        <div>
+          <h2>Catálogo</h2>
+          <p>{stats.total} imóveis</p>
+        </div>
+        <div className="head-tools">
+          <div className="search">
+            <Search size={14} />
+            <input placeholder="Buscar imóvel..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+          <button className="btn-new" onClick={onCreate}><Plus size={14} /> Novo</button>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span className="stat-label"><HomeIcon size={11}/> Total</span>
+          <strong>{stats.total}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label"><TrendingUp size={11}/> Tipo + comum</span>
+          <strong>{stats.topType}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label"><MapPinned size={11}/> Cidade + comum</span>
+          <strong>{stats.topCity}</strong>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label"><DollarSign size={11}/> Preço médio</span>
+          <strong>{stats.avgPrice > 0 ? `R$ ${(stats.avgPrice/1000).toFixed(0)}k` : '—'}</strong>
+        </div>
+      </div>
+
+      <div className="ads-grid">
+        {filtered.map((prop) => (
+          <div key={prop.id} className="ad-card" onClick={() => onEdit(prop)}>
+            <div className="ad-thumb">
+              <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
+            </div>
+            <div className="ad-info">
+              <h3>{prop.title}</h3>
+              <p><MapPin size={12}/> {prop.neighborhood || 'N/A'}, {prop.city || 'N/A'}</p>
+              <div className="ad-foot">
+                <span className="price">R$ {prop.price?.toLocaleString('pt-BR')}</span>
+                <div className="actions">
+                  <button onClick={(e) => { e.stopPropagation(); onEdit(prop); }} className="btn-icon"><Edit3 size={13}/></button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(prop.id); }} className="btn-icon danger"><Trash2 size={13}/></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="empty-grid"><ImageIcon size={32} /> Nenhum imóvel encontrado.</div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showForm && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="form-overlay">
+            <div className="marketplace-grid-3">
+              <div className="col-thumbnails">
+                <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
+                <div className="thumbs-scroll-area">
+                  <Reorder.Group values={formData.images} onReorder={(newOrder) => setFormData({...formData, images: newOrder})} className="thumbs-grid">
+                    {formData.images.map((img, i) => (
+                      <Reorder.Item key={img} value={img} className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} onClick={() => setActiveImgIndex(i)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} layout>
+                        <div className="drag-handle">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 11V7h2v4H7zm0 6v-4h2v4H7zm6-6V7h2v4h-2zm0 6v-4h2v4h-2zm6-6V7h2v4h-2zm0 6v-4h2v4h-2z"/></svg>
+                        </div>
+                        <img src={img} alt="" />
+                        <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}>
+                          <X size={12}/>
+                        </button>
+                        {i === 0 && <span className="capa-label">CAPA</span>}
+                      </Reorder.Item>
+                    ))}
+                    <div className="thumb-slot empty"><ImageIcon size={20} className="text-slate-800" /></div>
+                  </Reorder.Group>
+                </div>
+                <div className="add-url-section">
+                  <p className="hint">Cole o link do Google Drive abaixo:</p>
+                  <form onSubmit={handleExternalUrlAdd} className="url-form">
+                    <input type="text" placeholder="https://drive.google.com/..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
+                    <button type="submit"><Plus size={18}/></button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="col-preview">
+                <div className="preview-stage">
+                  <button className="btn-close-market" onClick={onCancel}><X size={24}/></button>
+                  <AnimatePresence mode="wait">
+                    <motion.img key={activeImgIndex} src={formData.images[activeImgIndex] || '/images/property1.png'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="main-preview-img" />
+                  </AnimatePresence>
+                  {formData.images.length > 1 && (
+                    <div className="nav-btns">
+                      <button onClick={() => setActiveImgIndex(prev => (prev > 0 ? prev - 1 : formData.images.length - 1))}><ChevronLeft/></button>
+                      <button onClick={() => setActiveImgIndex(prev => (prev < formData.images.length - 1 ? prev + 1 : 0))}><ChevronRight/></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="col-form-details">
+                <div className="col-header"><h3>{editingId ? 'Editar Anúncio' : 'Novo Anúncio'}</h3></div>
+                <form onSubmit={onSubmit} className="details-form">
+                  <div className="field">
+                    <label>Título</label>
+                    <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Apto 118m² 3 Quartos" />
+                  </div>
+                  <div className="field-row">
+                    <div className="field">
+                      <label>Preço (R$)</label>
+                      <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="0.00" />
+                    </div>
+                    <div className="field">
+                      <label>Categoria</label>
+                      <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                        <option>Residencial</option>
+                        <option>Alto Padrão</option>
+                        <option>Litorâneo</option>
+                        <option>Comercial/Residencial</option>
+                        <option>Terreno</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="field-row">
+                    <div className="field">
+                      <label>Tipo</label>
+                      <select value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})}>
+                        <option value="">—</option>
+                        <option>Apartamento</option>
+                        <option>Casa</option>
+                        <option>Prédio</option>
+                        <option>Terreno</option>
+                        <option>Cobertura</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Intenção</label>
+                      <select value={formData.intent || 'venda'} onChange={e => setFormData({...formData, intent: e.target.value})}>
+                        <option value="venda">Venda</option>
+                        <option value="aluguel">Aluguel</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="field-row">
+                    <div className="field">
+                      <label>Cidade</label>
+                      <input type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                    </div>
+                    <div className="field">
+                      <label>Bairro</label>
+                      <input type="text" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>Link do Vídeo Tour</label>
+                    <input type="text" value={formData.video} onChange={e => setFormData({...formData, video: e.target.value})} placeholder="Ex: /images/imob-138/garden-tour.mp4" />
+                  </div>
+                  <div className="field">
+                    <label>Descrição</label>
+                    <textarea rows="6" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                  </div>
+                  <button type="submit" className="btn-save" disabled={loading}>
+                    <Save size={18}/> {loading ? 'Sincronizando...' : 'Publicar'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        .catalog-wrap { padding: 2rem; }
+        .catalog-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 1.5rem; }
+        .catalog-head h2 { font-size: 1.8rem; font-weight: 900; color: #f8fafc; letter-spacing: -1px; }
+        .catalog-head p { color: #64748b; font-size: 0.85rem; margin-top: 0.3rem; }
+        .head-tools { display: flex; gap: 0.6rem; align-items: center; }
+        .search { display: flex; align-items: center; gap: 0.5rem; background: #0f172a; border: 1px solid #1e293b; padding: 0.5rem 0.9rem; border-radius: 8px; color: #64748b; }
+        .search input { background: transparent; border: none; outline: none; color: #f8fafc; font-size: 0.85rem; width: 220px; }
+        .btn-new {
+          background: #eab308; color: #020617; border: none;
+          padding: 0.55rem 1rem; border-radius: 8px; font-weight: 900;
+          font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+          text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .btn-new:hover { background: #facc15; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #070b14; border: 1px solid #1e293b; padding: 1rem; border-radius: 10px; }
+        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 800; display: flex; align-items: center; gap: 0.3rem; }
+        .stat-card strong { display: block; margin-top: 0.4rem; font-size: 1.3rem; color: #eab308; font-weight: 900; }
+        @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+        .ad-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; display: flex; cursor: pointer; transition: 0.2s; }
+        .ad-card:hover { border-color: #eab308; transform: translateY(-2px); }
+        .ad-thumb { width: 130px; height: 130px; flex-shrink: 0; background: #1e293b; }
+        .ad-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .ad-info { padding: 0.9rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+        .ad-info h3 { font-size: 0.9rem; font-weight: 800; color: #f8fafc; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ad-info p { font-size: 0.72rem; color: #64748b; margin: 4px 0; display: flex; align-items: center; gap: 4px; }
+        .ad-foot { display: flex; align-items: end; justify-content: space-between; }
+        .price { font-size: 1.05rem; font-weight: 900; color: #eab308; }
+        .actions { display: flex; gap: 4px; }
+        .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; }
+        .btn-icon.danger:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .empty-grid { padding: 4rem; text-align: center; color: #475569; display: flex; flex-direction: column; align-items: center; gap: 0.8rem; grid-column: 1 / -1; }
+
+        .form-overlay { position: fixed; inset: 0; left: 240px; background: #020617; z-index: 2000; overflow-y: auto; overflow-x: hidden; }
+        .marketplace-grid-3 { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr 380px; }
+        .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
+        .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
+        .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.15em; }
+        .thumbs-grid { display: flex; flex-direction: column; gap: 0.8rem; width: 100%; list-style: none; padding: 0; margin: 0; }
+        .thumb-slot { width: 100%; height: 100px; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: start; transition: 0.2s; padding: 0.6rem; gap: 1rem; box-sizing: border-box; list-style: none; }
+        .thumb-slot.active { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.2); }
+        .thumb-slot img { width: 80px; height: 100%; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+        .drag-handle { background: rgba(255,255,255,0.05); color: #64748b; padding: 0.8rem; border-radius: 8px; cursor: grab; transition: 0.2s; }
+        .thumb-slot:hover .drag-handle { color: #eab308; background: rgba(234, 179, 8, 0.1); }
+        .btn-remove-photo { position: absolute; top: 0.5rem; right: 0.5rem; background: #ef4444; color: #fff; border: none; padding: 6px; border-radius: 6px; z-index: 10; opacity: 0.3; transition: 0.2s; cursor: pointer; }
+        .thumb-slot:hover .btn-remove-photo { opacity: 1; }
+        .capa-label { background: #eab308; color: #020617; font-size: 8px; font-weight: 900; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; position: absolute; bottom: 6px; right: 6px; }
+        .add-url-section { padding-top: 1rem; border-top: 1px solid #1e293b; }
+        .hint { font-size: 0.7rem; color: #64748b; margin-bottom: 0.6rem; font-weight: 800; }
+        .url-form { display: flex; gap: 4px; }
+        .url-form input { background: #0f172a; border: 1px solid #1e293b; padding: 0.7rem; border-radius: 8px; color: #fff; font-size: 0.8rem; flex-grow: 1; }
+        .url-form button { background: #eab308; color: #020617; padding: 0.7rem; border-radius: 8px; border: none; cursor: pointer; }
+
+        .col-preview { background: #020617; display: flex; align-items: center; justify-content: center; padding: 3rem; position: relative; }
+        .preview-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .main-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); }
+        .btn-close-market { position: absolute; top: 0; right: 0; background: #1e293b; color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 100; cursor: pointer; }
+        .btn-close-market:hover { background: #ef4444; }
+        .nav-btns { position: absolute; width: 100%; display: flex; justify-content: space-between; padding: 0 1rem; pointer-events: none; }
+        .nav-btns button { pointer-events: auto; background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; color: #fff; width: 44px; height: 44px; border-radius: 50%; opacity: 0.6; cursor: pointer; }
+        .nav-btns button:hover { opacity: 1; border-color: #eab308; }
+
+        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; padding-bottom: 200px; }
+        .details-form { display: flex; flex-direction: column; gap: 1.2rem; }
+        .field label { display: block; font-size: 0.7rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.1em; }
+        .field input, .field select, .field textarea { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 0.85rem; border-radius: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box; font-family: inherit; }
+        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #eab308; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+        .btn-save { background: #eab308; color: #020617; padding: 1rem; border-radius: 10px; font-weight: 900; text-transform: uppercase; border: none; display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 1rem; cursor: pointer; letter-spacing: 0.1em; }
+        .btn-save:disabled { opacity: 0.5; }
+      `}</style>
+    </div>
+  );
+}
+
+// ===== CONFIGURAÇÕES =====
+function SettingsTab({ siteConfigs, setSiteConfigs, onSave }) {
+  return (
+    <div className="settings-wrap">
+      <div className="settings-head">
+        <h2>Configurações</h2>
+        <p>Conteúdo institucional do site público</p>
+      </div>
+
+      <div className="glass-panel">
+        <h3>Contato</h3>
+        <div className="field-row">
+          <div className="field">
+            <label>E-mail</label>
+            <input type="email" value={siteConfigs.contact_email || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_email: e.target.value})} placeholder="exemplo@email.com" />
+          </div>
+          <div className="field">
+            <label>WhatsApp</label>
+            <input type="text" value={siteConfigs.contact_phone || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_phone: e.target.value})} placeholder="(48) 99999-9999" />
+          </div>
+        </div>
+        <div className="field">
+          <label>Título do Hero</label>
+          <input type="text" value={siteConfigs.hero_title || ''} onChange={e => setSiteConfigs({...siteConfigs, hero_title: e.target.value})} />
+        </div>
+
+        <h3 style={{ marginTop: '2rem' }}>Biografia</h3>
+        <textarea
+          value={siteConfigs.about_bio || ''}
+          onChange={e => setSiteConfigs({...siteConfigs, about_bio: e.target.value})}
+          placeholder="Texto que aparece na seção Sobre..."
+        />
+
+        <button onClick={() => onSave(siteConfigs)} className="btn-save">
+          <Save size={16}/> Salvar
+        </button>
+      </div>
+
+      <style jsx>{`
+        .settings-wrap { padding: 2rem; max-width: 900px; }
+        .settings-head { margin-bottom: 1.5rem; }
+        .settings-head h2 { font-size: 1.8rem; font-weight: 900; color: #f8fafc; letter-spacing: -1px; }
+        .settings-head p { color: #64748b; font-size: 0.85rem; margin-top: 0.3rem; }
+
+        .glass-panel { background: #070b14; border: 1px solid #1e293b; border-radius: 14px; padding: 2rem; }
+        .glass-panel h3 { font-size: 0.75rem; text-transform: uppercase; color: #eab308; letter-spacing: 0.2em; font-weight: 900; margin-bottom: 1rem; }
+
+        .field { margin-bottom: 1.2rem; }
+        .field label { display: block; font-size: 0.7rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.1em; }
+        .field input { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 0.85rem; border-radius: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        textarea { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 1rem; border-radius: 8px; color: #fff; font-size: 0.9rem; min-height: 220px; box-sizing: border-box; font-family: inherit; }
+        .btn-save { background: #eab308; color: #020617; padding: 0.9rem 1.5rem; border-radius: 10px; font-weight: 900; text-transform: uppercase; border: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem; cursor: pointer; letter-spacing: 0.1em; font-size: 0.8rem; }
+      `}</style>
+    </div>
+  );
+}
+
+// ===== ADMIN PAGE =====
+export default function AdminPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [activeTab, setActiveTab] = useState('catalog');
+  const [properties, setProperties] = useState([]);
+  const [loadingProps, setLoadingProps] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [externalUrl, setExternalUrl] = useState('');
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
+  const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
+  const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', state: 'SC', category: 'Residencial', type: '', intent: 'venda', images: [], video: '' });
+  const [leadsCount, setLeadsCount] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/admin/status', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => { if (alive) setIsLoggedIn(Boolean(data?.authenticated)); })
+      .catch(() => {})
+      .finally(() => { if (alive) setInitialized(true); });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchProperties();
+    fetchSiteConfigs();
+    fetchLeadsCount();
+  }, [isLoggedIn]);
+
+  async function fetchProperties() {
+    try {
+      setLoadingProps(true);
+      const res = await fetch('/api/properties');
+      const data = await res.json();
+      setProperties(Array.isArray(data) ? data : []);
+    } catch (err) { console.error('properties:', err); }
+    finally { setLoadingProps(false); }
+  }
+
+  async function fetchSiteConfigs() {
+    try {
+      const res = await fetch('/api/configs');
+      const data = await res.json();
+      setSiteConfigs(data || {});
+    } catch (err) { console.error('configs:', err); }
+  }
+
+  async function fetchLeadsCount() {
+    try {
+      const res = await fetch('/api/leads', { credentials: 'include' });
+      const data = await res.json();
+      if (Array.isArray(data)) setLeadsCount(data.filter((l) => l.status === 'novo').length);
+    } catch (err) { /* ignora */ }
+  }
+
+  const handleAttemptLogin = async (email, pass) => {
+    setLoginError('');
+    setLoginSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ email, pass }),
+      });
+      if (res.ok) setIsLoggedIn(true);
+      else {
+        const data = await res.json().catch(() => ({}));
+        setLoginError(data.error || 'Credenciais inválidas.');
+      }
+    } catch (err) { setLoginError('Erro de rede.'); }
+    finally { setLoginSubmitting(false); }
+  };
+
+  const handleLogout = async () => {
+    try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }); } catch {}
+    setIsLoggedIn(false);
+    window.location.href = '/admin';
+  };
+
+  const handleCreate = () => {
+    setEditingId(null);
+    setFormData({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', state: 'SC', category: 'Residencial', type: '', intent: 'venda', images: [], video: '' });
+    setShowForm(true);
+    setActiveImgIndex(0);
+  };
+
   const handleEdit = (prop) => {
     setEditingId(prop.id);
     setFormData({
@@ -224,42 +526,32 @@ export default function AdminPage() {
       city: prop.city || 'Imbituba',
       neighborhood: prop.neighborhood || '',
       state: prop.state || 'SC',
-      video: prop.video || ''
+      type: prop.type || '',
+      intent: prop.intent || 'venda',
+      video: prop.video || '',
     });
     setShowForm(true);
     setActiveImgIndex(0);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.')) return;
+    if (!confirm('Excluir este imóvel? Não dá pra desfazer.')) return;
     try {
-      const res = await fetch(`/api/properties?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        setProperties(properties.filter(p => p.id !== id));
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert('Falha ao excluir: ' + (err.error || res.status));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Falha ao excluir.');
-    }
+      const res = await fetch(`/api/properties?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) setProperties((prev) => prev.filter(p => p.id !== id));
+      else { const err = await res.json().catch(() => ({})); alert('Falha: ' + (err.error || res.status)); }
+    } catch (err) { alert('Falha ao excluir.'); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setLoadingProps(true);
     try {
       const dataToSave = {
         ...formData,
         price: Number(formData.price),
-        city: formData.city,
-        neighborhood: formData.neighborhood,
         state: formData.state || 'SC',
       };
-
       let row;
       let updated;
       if (editingId) {
@@ -269,13 +561,10 @@ export default function AdminPage() {
         row = { ...dataToSave, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) };
         updated = [row, ...properties];
       }
-
       const res = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
         body: JSON.stringify(row),
       });
-
       if (res.ok) {
         setProperties(updated);
         setShowForm(false);
@@ -284,366 +573,70 @@ export default function AdminPage() {
         const err = await res.json().catch(() => ({}));
         alert('Falha ao salvar: ' + (err.error || res.status));
       }
-    } catch (err) {
-      console.error(err);
-      alert('Falha ao salvar.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { alert('Falha ao salvar.'); }
+    finally { setLoadingProps(false); }
   };
 
-  const handleUpdateConfig = async (newConfigs) => {
+  const handleSaveConfigs = async (newConfigs) => {
     try {
       const res = await fetch('/api/configs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
         body: JSON.stringify(newConfigs),
       });
-      if (res.ok) {
-        setSiteConfigs(newConfigs);
-        alert('Configurações atualizadas com sucesso.');
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.ok) { setSiteConfigs(newConfigs); alert('Configurações salvas.'); }
+      else { const err = await res.json().catch(() => ({})); alert('Falha: ' + (err.error || res.status)); }
+    } catch (err) { alert('Falha ao salvar.'); }
   };
 
   if (!initialized) return null;
   if (!isLoggedIn) return <LocalAdminLogin onLogin={handleAttemptLogin} error={loginError} submitting={loginSubmitting} />;
 
   return (
-    <div className="admin-marketplace-layout">
-      {/* INJEÇÃO DE CSS GLOBAL PARA SOBREPOSIÇÃO SOBERANA TOTAL */}
+    <div className="admin-shell">
       <style dangerouslySetInnerHTML={{ __html: `
-        /* BLOQUEIO AGRESSIVO DE ELEMENTOS EXTERNOS */
-        header, .navbar, .hero-section, footer, #nav, .navbar.scrolled { 
-          display: none !important; 
-          visibility: hidden !important; 
-          opacity: 0 !important; 
-          pointer-events: none !important; 
-          height: 0 !important; 
-          padding: 0 !important; 
-          margin: 0 !important;
-        }
-
-        html, body { 
-          background: #020617 !important; 
-          overflow: hidden !important; 
-          width: 100vw !important; 
-          height: 100vh !important; 
-          margin: 0 !important; 
-          padding: 0 !important; 
-        }
-        
-        .admin-marketplace-layout { 
-          position: fixed !important; 
-          inset: 0 !important; 
-          top: 0 !important;
-          left: 0 !important;
-          z-index: 2147483647 !important; /* Valor máximo de z-index */
-          background: #020617 !important; 
-          width: 100vw !important;
-          height: 100vh !important;
-          display: flex !important;
-          flex-direction: column !important;
-          overflow: hidden !important; 
-          font-family: 'Inter', sans-serif;
-        }
-        
-        .admin-main-container { 
-          flex-grow: 1 !important; 
-          overflow-y: auto !important; 
-          background: #020617 !important;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .layout-split {
-          min-height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
+        html, body { background: #020617 !important; margin: 0 !important; padding: 0 !important; }
+        .admin-shell { display: flex; min-height: 100vh; background: #020617; font-family: 'Inter', system-ui, sans-serif; color: #f8fafc; }
+        .admin-main { flex-grow: 1; min-height: 100vh; overflow-y: auto; }
       ` }} />
 
-      {/* HEADER SUPERIOR ROBUSTO */}
-      <nav className="admin-top-nav-robust">
-        <div className="nav-left-group">
-          <img src="/images/logo-trimmed.png" alt="Charles R. Nobre" className="nav-logo-robust" />
-          <div className="nav-divider"></div>
-          <button onClick={() => setActiveTab('properties')} className={`nav-tab-btn ${activeTab === 'properties' ? 'active' : ''}`}>Meus Anúncios</button>
-          <button onClick={() => setActiveTab('settings')} className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}>Configurações</button>
-        </div>
-        <div className="nav-right-group">
-          <button onClick={() => { setEditingId(null); setFormData({title:'', description:'', price:'', city:'Imbituba', neighborhood:'', category:'Residencial', images:[], video: ''}); setShowForm(true); }} className="btn-add-robust"><Plus size={16}/> Novo Anúncio</button>
-          <button onClick={handleLogout} className="btn-logout-robust"><LogOut size={18}/></button>
-        </div>
-      </nav>
+      <Sidebar
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        onLogout={handleLogout}
+        leadsCount={leadsCount}
+      />
 
-      <main className="admin-main-container">
-        {activeTab === 'properties' ? (
-          <div className="layout-split">
-            {/* LISTA DE ANÚNCIOS (VISÃO MARKETPLACE) */}
-            <div className={`ads-list-panel ${showForm ? 'minimized' : ''}`}>
-              <div className="panel-header">
-                <h2>Meus Anúncios <span className="badge">{properties.length}</span></h2>
-                <div className="search-box">
-                  <Search size={16} className="text-slate-500" />
-                  <input type="text" placeholder="Buscar imóvel..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="ads-grid">
-                {properties.filter(p => !searchTerm || p.title.toLowerCase().includes(searchTerm.toLowerCase()) || (p.city || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase())).map(prop => (
-                  <div key={prop.id} className="ad-card-row" onClick={() => handleEdit(prop)}>
-                    <div className="ad-thumb">
-                      <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
-                    </div>
-                    <div className="ad-info">
-                      <h3>{prop.title}</h3>
-                      <p><MapPin size={12}/> {prop.neighborhood || 'N/A'}, {prop.city || 'N/A'}</p>
-                      <div className="flex items-end justify-between">
-                        <span className="price">R$ {prop.price?.toLocaleString('pt-BR')}</span>
-                        <div className="actions">
-                          <button onClick={(e) => { e.stopPropagation(); handleEdit(prop); }} className="btn-icon"><Edit3 size={14}/></button>
-                          <button onClick={(e) => { e.stopPropagation(); handleDelete(prop.id); }} className="btn-icon text-red-500"><Trash2 size={14}/></button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* FORMULÁRIO DE EDIÇÃO (MODO MARKETPLACE 3 COLUNAS) */}
-            <AnimatePresence>
-              {showForm && (
-                <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="marketplace-form-overlay">
-                  <div className="marketplace-grid-3">
-                    {/* COLUNA 1: MINIATURAS ADAPTÁVEIS */}
-                    <div className="col-thumbnails">
-                      <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
-                      <div className="thumbs-scroll-area">
-                        <Reorder.Group values={formData.images} onReorder={(newOrder) => setFormData({...formData, images: newOrder})} className="thumbs-grid">
-                          {formData.images.map((img, i) => (
-                            <Reorder.Item 
-                              key={img} 
-                              value={img} 
-                              className={`thumb-slot ${activeImgIndex === i ? 'active' : ''}`} 
-                              onClick={() => setActiveImgIndex(i)}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              layout
-                            >
-                              <div className="drag-handle">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 11V7h2v4H7zm0 6v-4h2v4H7zm6-6V7h2v4h-2zm0 6v-4h2v4h-2zm6-6V7h2v4h-2zm0 6v-4h2v4h-2z"/></svg>
-                              </div>
-                              <img src={img} alt="" />
-                              <button className="btn-remove-photo" onClick={(e) => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_, idx) => idx !== i)}); }}>
-                                <X size={12}/>
-                              </button>
-                              {i === 0 && <span className="capa-label">CAPA</span>}
-                            </Reorder.Item>
-                          ))}
-                          {/* Slot vazio para incentivar adição */}
-                          <div className="thumb-slot empty">
-                            <ImageIcon size={20} className="text-slate-800" />
-                          </div>
-                        </Reorder.Group>
-                      </div>
-                      <div className="add-url-section">
-                        <p className="hint">Cole o link do Google Drive abaixo:</p>
-                        <form onSubmit={handleExternalUrlAdd} className="url-form">
-                          <input type="text" placeholder="https://drive.google.com/..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
-                          <button type="submit"><Plus size={18}/></button>
-                        </form>
-                      </div>
-                    </div>
-
-                    {/* COLUNA 2: PREVIEW AMPLIADO */}
-                    <div className="col-preview">
-                      <div className="preview-stage">
-                        <button className="btn-close-market" onClick={() => setShowForm(false)}><X size={24}/></button>
-                        <AnimatePresence mode="wait">
-                          <motion.img 
-                            key={activeImgIndex} 
-                            src={formData.images[activeImgIndex] || '/images/property1.png'} 
-                            initial={{ opacity: 0 }} 
-                            animate={{ opacity: 1 }} 
-                            className="main-preview-img"
-                          />
-                        </AnimatePresence>
-                        {formData.images.length > 1 && (
-                          <div className="nav-btns">
-                            <button onClick={() => setActiveImgIndex(prev => (prev > 0 ? prev - 1 : formData.images.length - 1))}><ChevronLeft/></button>
-                            <button onClick={() => setActiveImgIndex(prev => (prev < formData.images.length - 1 ? prev + 1 : 0))}><ChevronRight/></button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* COLUNA 3: FORMULÁRIO DE DADOS */}
-                    <div className="col-form-details">
-                      <div className="col-header"><h3>Detalhes do Anúncio</h3></div>
-                      <form onSubmit={handleSubmit} className="details-form">
-                        <div className="field">
-                          <label>Título do Anúncio</label>
-                          <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Apto 118m² 3 Quartos" />
-                        </div>
-                        <div className="field-row">
-                          <div className="field">
-                            <label>Preço de Venda (R$)</label>
-                            <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="0.00" />
-                          </div>
-                          <div className="field">
-                            <label>Categoria</label>
-                            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                              <option>Residencial</option>
-                              <option>Alto Padrão</option>
-                              <option>Terreno</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="field">
-                          <label>Link do Vídeo Tour</label>
-                          <input type="text" value={formData.video} onChange={e => setFormData({...formData, video: e.target.value})} placeholder="Ex: /images/imob-138/garden-tour.mp4" />
-                        </div>
-                        <div className="field">
-                          <label>Bairro</label>
-                          <input type="text" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} placeholder="Ex: Centro" />
-                        </div>
-                        <div className="field">
-                          <label>Descrição Completa</label>
-                          <textarea rows="8" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Conte os detalhes do imóvel..." />
-                        </div>
-                        <button type="submit" className="btn-save-market" disabled={loading}>
-                          <Save size={18}/> {loading ? 'Sincronizando...' : 'Publicar no Site'}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ) : (
-          /* CONFIGURAÇÕES GERAIS */
-          <div className="max-w-4xl mx-auto p-10">
-            <div className="admin-header-content">
-              <h1 style={{ color: '#fff', margin: 0 }}>Meus Anúncios</h1>
-              <p style={{ color: '#fff', opacity: 0.8, margin: '5px 0 0 0' }}>Gerencie suas propriedades e configurações do site</p>
-            </div>
-            <div className="glass-panel p-10">
-              <h2 className="text-2xl font-black mb-6">Configurações Gerais do Site</h2>
-              
-              <div className="details-form mb-6">
-                <div className="field-row">
-                  <div className="field">
-                    <label>E-mail de Contato</label>
-                    <input type="email" value={siteConfigs.contact_email || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_email: e.target.value})} placeholder="exemplo@email.com" />
-                  </div>
-                  <div className="field">
-                    <label>Telefone / WhatsApp</label>
-                    <input type="text" value={siteConfigs.contact_phone || ''} onChange={e => setSiteConfigs({...siteConfigs, contact_phone: e.target.value})} placeholder="(48) 99999-9999" />
-                  </div>
-                </div>
-                <div className="field">
-                    <label>Título Principal (Hero Section)</label>
-                    <input type="text" value={siteConfigs.hero_title || ''} onChange={e => setSiteConfigs({...siteConfigs, hero_title: e.target.value})} placeholder="Encontre o Imóvel dos seus sonhos..." />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-black mb-4 mt-8 text-yellow-500">Biografia Institucional</h3>
-              <textarea 
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-6 text-slate-300 min-h-[300px] outline-none focus:border-yellow-500" 
-                value={siteConfigs.about_bio || ''} 
-                onChange={e => setSiteConfigs({...siteConfigs, about_bio: e.target.value})}
-                placeholder="Escreva a biografia que aparecerá na seção Sobre..."
-              />
-              <button 
-                onClick={() => handleUpdateConfig(siteConfigs)}
-                className="mt-8 bg-yellow-500 text-slate-950 font-black px-10 py-4 rounded-xl uppercase tracking-widest text-sm w-full flex justify-center items-center gap-2 transition hover:bg-yellow-400"
-              >
-                <Save size={18}/> Salvar Todas Configurações
-              </button>
-            </div>
-          </div>
+      <main className="admin-main">
+        {activeTab === 'catalog' && (
+          <CatalogTab
+            properties={properties}
+            onCreate={handleCreate}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            showForm={showForm}
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSubmit}
+            onCancel={() => { setShowForm(false); setEditingId(null); }}
+            externalUrl={externalUrl}
+            setExternalUrl={setExternalUrl}
+            activeImgIndex={activeImgIndex}
+            setActiveImgIndex={setActiveImgIndex}
+            loading={loadingProps}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            editingId={editingId}
+          />
+        )}
+        {activeTab === 'leads' && <LeadsKanban />}
+        {activeTab === 'settings' && (
+          <SettingsTab
+            siteConfigs={siteConfigs}
+            setSiteConfigs={setSiteConfigs}
+            onSave={handleSaveConfigs}
+          />
         )}
       </main>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .admin-top-nav-robust { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid #1e293b; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10000; box-sizing: border-box; }
-        .nav-left-group { display: flex; align-items: center; gap: 1.5rem; height: 100%; }
-        .nav-right-group { display: flex; align-items: center; gap: 1rem; height: 100%; }
-        .nav-logo-robust { height: 36px; width: auto; display: block; object-fit: contain; }
-        .nav-divider { height: 24px; width: 1px; background-color: #334155; margin: 0 0.5rem; }
-        .nav-tab-btn { background: transparent; border: none; color: #94a3b8; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 0; cursor: pointer; transition: 0.3s; height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; box-sizing: border-box; margin-top: 2px; }
-        .nav-tab-btn:hover { color: #cbd5e1; }
-        .nav-tab-btn.active { color: #f8fafc; border-bottom-color: #eab308; }
-        .btn-add-robust { background: #eab308; color: #020617; padding: 0 1.2rem; height: 40px; border-radius: 8px; border: none; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; transition: 0.3s; box-sizing: border-box; line-height: 1; }
-        .btn-add-robust:hover { background: #facc15; transform: translateY(-1px); }
-        .btn-logout-robust { background: transparent; border: none; color: #64748b; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; transition: 0.3s; box-sizing: border-box; }
-        .btn-logout-robust:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-        
-        .admin-main-container { flex-grow: 1; position: relative; overflow: hidden; }
-        .layout-split { min-height: 100% }
-        
-        .ads-list-panel { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; transition: 0.5s; width: 100%; }
-        .ads-list-panel.minimized { opacity: 0.2; pointer-events: none; transform: scale(0.98); }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
-        .panel-header h2 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; color: #fff; }
-        .badge { background: #1e293b; color: #eab308; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: 0.5rem; }
-        .search-box { background: #0f172a; border: 1px solid #1e293b; padding: 0.6rem 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.8rem; width: 300px; }
-        .search-box input { background: transparent; border: none; color: #fff; outline: none; font-size: 0.9rem; }
-        
-        .ads-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; padding-bottom: 100px; width: 100%; }
-        .ad-card-row { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; display: flex; cursor: pointer; transition: 0.3s; }
-        .ad-card-row:hover { border-color: #eab308; transform: translateY(-4px); }
-        .ad-thumb { width: 140px; height: 140px; position: relative; background: #1e293b; flex-shrink: 0; }
-        .ad-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .premium-tag { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.8); color: #eab308; font-size: 8px; font-weight: 900; padding: 3px 6px; border: 1px solid #eab308; }
-        .ad-info { padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-        .ad-info h3 { font-size: 0.9rem; font-weight: 800; color: #f8fafc; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ad-info p { font-size: 0.75rem; color: #64748b; margin: 4px 0; display: flex; align-items: center; gap: 4px; }
-        .price { font-size: 1.1rem; font-weight: 900; color: #eab308; }
-        .btn-icon { background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 6px; border-radius: 6px; }
-
-        .marketplace-form-overlay { position: fixed; inset: 0; background: #020617; z-index: 2000; overflow-y: auto; overflow-x: hidden; }
-        .marketplace-grid-3 { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr 380px; }
-        
-        .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
-        .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
-        .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; }
-        .thumbs-grid { display: flex; flex-direction: column; gap: 0.8rem; width: 100%; }
-        .thumb-slot { width: 100%; height: 100px; background: #0f172a; border: 2px solid #1e293b; border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: start; transition: 0.3s; padding: 0.6rem; gap: 1rem; box-sizing: border-box; }
-        .thumb-slot.active { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.2); }
-        .thumb-slot img { width: 80px; height: 100%; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
-        .drag-handle { background: rgba(255,255,255,0.05); color: #64748b; padding: 0.8rem; border-radius: 8px; cursor: grab; transition: 0.3s; }
-        .thumb-slot:hover .drag-handle { color: #eab308; background: rgba(234, 179, 8, 0.1); }
-        .drag-handle:active { cursor: grabbing; }
-        .btn-remove-photo { position: absolute; top: 0.5rem; right: 0.5rem; background: #ef4444; color: #fff; border: none; padding: 6px; border-radius: 6px; z-index: 10; opacity: 0.3; transition: 0.3s; }
-        .thumb-slot:hover .btn-remove-photo { opacity: 1; }
-        .capa-label { background: #eab308; color: #020617; font-size: 8px; font-weight: 900; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
-        .add-url-section { margin-top: auto; padding-top: 2rem; }
-        .hint { font-size: 0.7rem; color: #64748b; margin-bottom: 0.8rem; font-weight: 800; }
-        .url-form { display: flex; gap: 4px; }
-        .url-form input { background: #0f172a; border: 1px solid #1e293b; padding: 0.8rem; border-radius: 8px; color: #fff; font-size: 0.8rem; flex-grow: 1; }
-        .url-form button { background: #eab308; color: #020617; padding: 0.8rem; border-radius: 8px; border: none; flex-shrink: 0; }
-
-        .col-preview { background: #020617; display: flex; align-items: center; justify-content: center; position: relative; padding: 4rem; }
-        .preview-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
-        .main-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 20px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); }
-        .btn-close-market { position: absolute; top: -10px; right: -10px; background: #1e293b; color: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 100; transition: 0.3s; }
-        .btn-close-market:hover { background: #ef4444; }
-        .nav-btns { position: absolute; width: 100%; display: flex; justify-content: space-between; padding: 0 2rem; pointer-events: none; }
-        .nav-btns button { pointer-events: auto; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; color: #fff; width: 50px; height: 50px; border-radius: 50%; opacity: 0.5; transition: 0.3s; }
-
-        .col-form-details { background: #070b14; border-left: 1px solid #1e293b; padding: 2rem; overflow-y: auto; padding-bottom: 200px; }
-        .details-form { display: flex; flex-direction: column; gap: 1.5rem; }
-        .field label { display: block; font-size: 0.75rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.6rem; }
-        .field input, .field select, .field textarea { width: 100%; background: #0f172a; border: 1px solid #1e293b; padding: 1rem; border-radius: 10px; color: #fff; font-size: 0.9rem; }
-        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .btn-save-market { background: #eab308; color: #020617; padding: 1.2rem; border-radius: 12px; font-weight: 900; text-transform: uppercase; border: none; display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 2rem; transition: 0.3s; }
-        .glass-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; }
-      ` }} />
     </div>
   );
 }

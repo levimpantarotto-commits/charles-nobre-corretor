@@ -17,7 +17,7 @@ export default function LeadModal() {
     const waNumber = '5548999459527';
     const sheetUrl = 'https://script.google.com/macros/s/AKfycbwh55T7NZJ7poASgGz6uxZiAeixxuyAElM4F6r__Ekpf6pDYCiqRGNv7ztF86jFHg3kCQ/exec';
 
-    // Send to Google Sheets
+    // Backup pro Google Sheets (legado, mantido)
     try {
       fetch(sheetUrl, {
         method: 'POST',
@@ -29,8 +29,25 @@ export default function LeadModal() {
       console.error('Error sending to sheets:', err);
     }
 
-    const baseMsg = propertyTitle 
-      ? `Olá Charles! Tenho interesse no imóvel: *${propertyTitle}*.` 
+    // Captura canônica no Supabase (vira lead no dashboard)
+    try {
+      fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          property_title: propertyTitle,
+          source: 'site',
+        }),
+      });
+    } catch (err) {
+      console.error('Error sending to supabase:', err);
+    }
+
+    const baseMsg = propertyTitle
+      ? `Olá Charles! Tenho interesse no imóvel: *${propertyTitle}*.`
       : 'Olá Charles! Gostaria de mais informações sobre seus imóveis.';
     
     const leadInfo = `\n\n*Meus Dados:*\nNome: ${formData.name}\nE-mail: ${formData.email}\nTelefone: ${formData.phone}`;
