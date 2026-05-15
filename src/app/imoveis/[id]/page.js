@@ -4,18 +4,32 @@ import { useLead } from '@/context/LeadContext';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import listings from '@/data/listings.json';
 import { IoChevronBack, IoChevronForward, IoClose, IoExpandOutline } from 'react-icons/io5';
 
 export default function PropertyDetail() {
   const params = useParams();
   const { openLeadModal } = useLead();
-  
-  const property = listings.find(p => p.id === params.id);
-  
+
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [showVideo, setShowVideo] = useState(!!property?.video);
+  const [showVideo, setShowVideo] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/properties')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!alive || !Array.isArray(data)) return;
+        const found = data.find((p) => String(p.id) === String(params.id)) ?? null;
+        setProperty(found);
+        setShowVideo(Boolean(found?.video));
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [params.id]);
 
   useEffect(() => {
     if (isLightboxOpen) {
@@ -25,6 +39,18 @@ export default function PropertyDetail() {
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [isLightboxOpen]);
+
+  if (loading) {
+    return (
+      <main>
+        <Navbar />
+        <div className="container section-padding" style={{ paddingTop: '12rem', textAlign: 'center' }}>
+          <p>Carregando imóvel...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   if (!property) {
     return (
@@ -78,9 +104,9 @@ export default function PropertyDetail() {
             <div className="location-row">
               <p className="location">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                {property.location.neighborhood}, {property.location.city} - {property.location.state}
+                {property.neighborhood}, {property.city} - {property.state}
               </p>
-              <div className="region-tag">Especialista em {property.location.city}</div>
+              <div className="region-tag">Especialista em {property.city}</div>
             </div>
           </div>
 

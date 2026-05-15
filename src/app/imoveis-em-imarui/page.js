@@ -1,15 +1,17 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyGrid';
-import listings from '@/data/listings.json';
+import { getPropertiesByCity } from '@/lib/properties';
+
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Imóveis e Sítios em Imaruí, SC | Charles R. Nobre',
   description: 'Tranquilidade e natureza em Imaruí. Confira sítios, terrenos e casas com vista para a lagoa. O refúgio que você procura com Charles R. Nobre.',
 };
 
-export default function ImaruiPage() {
-  const filteredListings = listings.filter(l => l.location.city === 'Imaruí');
+export default async function ImaruiPage() {
+  const filteredListings = await getPropertiesByCity('Imaruí');
 
   return (
     <main>
@@ -30,7 +32,7 @@ export default function ImaruiPage() {
                   key={prop.id} 
                   image={prop.images[0]}
                   title={prop.title}
-                  location={`${prop.location.neighborhood}, ${prop.location.city}`}
+                  location={`${prop.neighborhood}, ${prop.city}`}
                   price={prop.price}
                   type={prop.type}
                 />

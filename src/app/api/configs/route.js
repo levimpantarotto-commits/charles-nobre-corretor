@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAuthenticated } from '@/lib/admin-auth';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,8 +16,13 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  }
   if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ error: 'Acesso negado fora do ambiente local' }, { status: 403 });
+    // site_configs.json é gravação no filesystem — não funciona em Vercel (FS efêmero).
+    // TODO: migrar configs do site pra Supabase também.
+    return NextResponse.json({ error: 'Edição de configs disponível apenas em desenvolvimento por enquanto' }, { status: 403 });
   }
 
   try {

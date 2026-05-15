@@ -1,18 +1,18 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { 
-  FileText, Settings, LogOut, Plus, Trash2, Edit3, 
-  Image as ImageIcon, MapPin, Search, X, Maximize2, 
+import {
+  FileText, Settings, LogOut, Plus, Trash2, Edit3,
+  Image as ImageIcon, MapPin, Search, X, Maximize2,
   ChevronLeft, ChevronRight, Link as LinkIcon, Save, Info
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 // Componente de Login Simples e Profissional
-function LocalAdminLogin({ onLogin }) {
+function LocalAdminLogin({ onLogin, error, submitting }) {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
-  
+
   return (
     <div style={{
       display: 'flex',
@@ -66,14 +66,20 @@ function LocalAdminLogin({ onLogin }) {
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => onLogin(email, pass)}
-          style={{ width: '100%', borderRadius: '18px', backgroundColor: '#eab308', padding: '1.4rem', fontWeight: 900, color: '#020617', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 10px 30px rgba(234, 179, 8, 0.2)' }}
+          disabled={submitting}
+          style={{ width: '100%', borderRadius: '18px', backgroundColor: submitting ? '#a16207' : '#eab308', padding: '1.4rem', fontWeight: 900, color: '#020617', border: 'none', cursor: submitting ? 'wait' : 'pointer', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 10px 30px rgba(234, 179, 8, 0.2)' }}
         >
-          Entrar no Painel
+          {submitting ? 'Verificando...' : 'Entrar no Painel'}
         </button>
+        {error && (
+          <p style={{ marginTop: '1.5rem', fontSize: '11px', color: '#ef4444', fontWeight: 700 }}>
+            {error}
+          </p>
+        )}
         <p style={{ marginTop: '2.5rem', fontSize: '9px', color: '#334155', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-          Autenticação Segura • v5.4
+          Autenticação Server-Side • v6.0
         </p>
       </div>
     </div>
@@ -91,12 +97,18 @@ export default function AdminPage() {
   const [externalUrl, setExternalUrl] = useState('');
   const [activeImgIndex, setActiveImgIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
 
-  // Inicialização e Persistência do Login
+  // Checa sessão no servidor
   useEffect(() => {
-    const auth = localStorage.getItem('charles_admin_auth');
-    if (auth === 'true') setIsLoggedIn(true);
-    setInitialized(true);
+    let alive = true;
+    fetch('/api/admin/status', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => { if (alive) setIsLoggedIn(Boolean(data?.authenticated)); })
+      .catch(() => {})
+      .finally(() => { if (alive) setInitialized(true); });
+    return () => { alive = false; };
   }, []);
 
   useEffect(() => {
@@ -132,22 +144,40 @@ export default function AdminPage() {
     }
   }, [isLoggedIn]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('charles_admin_auth');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error(err);
+    }
     setIsLoggedIn(false);
-    window.location.href = '/admin'; // Hard reset para limpar o estado
+    window.location.href = '/admin';
   };
   
   const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
   const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', category: 'Residencial', images: [], video: '' });
 
-  const handleAttemptLogin = (email, pass) => {
-    if ((email === 'levimpantarotto@gmail.com' && pass === 'Master17453166') || 
-        (email === 'charlesrnobre@gmail.com' && pass === 'Imbituba4Forever')) {
-      localStorage.setItem('charles_admin_auth', 'true');
-      setIsLoggedIn(true);
-    } else {
-      alert('Credenciais incorretas para este painel local.');
+  const handleAttemptLogin = async (email, pass) => {
+    setLoginError('');
+    setLoginSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, pass }),
+      });
+      if (res.ok) {
+        setIsLoggedIn(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setLoginError(data.error || 'Credenciais inválidas.');
+      }
+    } catch (err) {
+      console.error(err);
+      setLoginError('Erro de rede.');
+    } finally {
+      setLoginSubmitting(false);
     }
   };
 
@@ -188,11 +218,12 @@ export default function AdminPage() {
 
   const handleEdit = (prop) => {
     setEditingId(prop.id);
-    setFormData({ 
-      ...prop, 
+    setFormData({
+      ...prop,
       price: prop.price.toString(),
-      city: prop.location?.city || prop.city || 'Imbituba',
-      neighborhood: prop.location?.neighborhood || prop.neighborhood || '',
+      city: prop.city || 'Imbituba',
+      neighborhood: prop.neighborhood || '',
+      state: prop.state || 'SC',
       video: prop.video || ''
     });
     setShowForm(true);
@@ -202,17 +233,18 @@ export default function AdminPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.')) return;
     try {
-      const updated = properties.filter(p => p.id !== id);
-      const res = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
+      const res = await fetch(`/api/properties?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
       });
       if (res.ok) {
-        setProperties(updated);
+        setProperties(properties.filter(p => p.id !== id));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('Falha ao excluir: ' + (err.error || res.status));
       }
     } catch (err) {
       console.error(err);
+      alert('Falha ao excluir.');
     }
   };
 
@@ -220,33 +252,41 @@ export default function AdminPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      let updated;
-      const dataToSave = { 
-        ...formData, 
+      const dataToSave = {
+        ...formData,
         price: Number(formData.price),
-        location: { city: formData.city, neighborhood: formData.neighborhood, state: 'SC' }
+        city: formData.city,
+        neighborhood: formData.neighborhood,
+        state: formData.state || 'SC',
       };
 
+      let row;
+      let updated;
       if (editingId) {
-        updated = properties.map(p => p.id === editingId ? { ...p, ...dataToSave, id: editingId } : p);
+        row = { ...properties.find(p => p.id === editingId), ...dataToSave, id: editingId };
+        updated = properties.map(p => p.id === editingId ? row : p);
       } else {
-        const newProperty = { ...dataToSave, id: Date.now().toString() };
-        updated = [newProperty, ...properties];
+        row = { ...dataToSave, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) };
+        updated = [row, ...properties];
       }
 
       const res = await fetch('/api/properties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
+        body: JSON.stringify(row),
       });
 
       if (res.ok) {
         setProperties(updated);
         setShowForm(false);
         setEditingId(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('Falha ao salvar: ' + (err.error || res.status));
       }
     } catch (err) {
       console.error(err);
+      alert('Falha ao salvar.');
     } finally {
       setLoading(false);
     }
@@ -269,7 +309,7 @@ export default function AdminPage() {
   };
 
   if (!initialized) return null;
-  if (!isLoggedIn) return <LocalAdminLogin onLogin={() => setIsLoggedIn(true)} />;
+  if (!isLoggedIn) return <LocalAdminLogin onLogin={handleAttemptLogin} error={loginError} submitting={loginSubmitting} />;
 
   return (
     <div className="admin-marketplace-layout">
@@ -352,14 +392,14 @@ export default function AdminPage() {
               </div>
 
               <div className="ads-grid">
-                {properties.filter(p => !searchTerm || p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()) || p.location?.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase())).map(prop => (
+                {properties.filter(p => !searchTerm || p.title.toLowerCase().includes(searchTerm.toLowerCase()) || (p.city || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.neighborhood || '').toLowerCase().includes(searchTerm.toLowerCase())).map(prop => (
                   <div key={prop.id} className="ad-card-row" onClick={() => handleEdit(prop)}>
                     <div className="ad-thumb">
                       <img src={prop.images?.[0] || '/images/property1.png'} alt="" />
                     </div>
                     <div className="ad-info">
                       <h3>{prop.title}</h3>
-                      <p><MapPin size={12}/> {prop.location?.neighborhood || prop.neighborhood || 'N/A'}, {prop.location?.city || prop.city || 'N/A'}</p>
+                      <p><MapPin size={12}/> {prop.neighborhood || 'N/A'}, {prop.city || 'N/A'}</p>
                       <div className="flex items-end justify-between">
                         <span className="price">R$ {prop.price?.toLocaleString('pt-BR')}</span>
                         <div className="actions">

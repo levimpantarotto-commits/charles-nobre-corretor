@@ -1,15 +1,17 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyGrid';
-import listings from '@/data/listings.json';
+import { getPropertiesByCity } from '@/lib/properties';
+
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Imóveis à Venda em Imbituba, SC | Charles R. Nobre',
   description: 'Confira as melhores casas e terrenos à venda em Imbituba, Praia do Rosa e região. Oportunidades exclusivas com Charles R. Nobre Corretor.',
 };
 
-export default function ImbitubaPage() {
-  const filteredListings = listings.filter(l => l.location.city === 'Imbituba');
+export default async function ImbitubaPage() {
+  const filteredListings = await getPropertiesByCity('Imbituba');
 
   return (
     <main>
@@ -29,7 +31,7 @@ export default function ImbitubaPage() {
                 key={prop.id} 
                 image={prop.images[0]}
                 title={prop.title}
-                location={`${prop.location.neighborhood}, ${prop.location.city}`}
+                location={`${prop.neighborhood}, ${prop.city}`}
                 price={prop.price}
                 type={prop.type}
               />

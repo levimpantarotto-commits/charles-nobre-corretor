@@ -1,15 +1,17 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyGrid';
-import listings from '@/data/listings.json';
+import { getPropertiesByCity } from '@/lib/properties';
+
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Imóveis à Venda em Garopaba, SC | Charles R. Nobre',
   description: 'As melhores casas de luxo, terrenos e pousadas à venda em Garopaba, Silveira e Ferrugem. Consultoria exclusiva com Charles R. Nobre.',
 };
 
-export default function GaropabaPage() {
-  const filteredListings = listings.filter(l => l.location.city === 'Garopaba');
+export default async function GaropabaPage() {
+  const filteredListings = await getPropertiesByCity('Garopaba');
 
   return (
     <main>
@@ -29,7 +31,7 @@ export default function GaropabaPage() {
                 key={prop.id} 
                 image={prop.images[0]}
                 title={prop.title}
-                location={`${prop.location.neighborhood}, ${prop.location.city}`}
+                location={`${prop.neighborhood}, ${prop.city}`}
                 price={prop.price}
                 type={prop.type}
               />

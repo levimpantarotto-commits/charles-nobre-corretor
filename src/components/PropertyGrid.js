@@ -148,7 +148,7 @@ export default function PropertyGrid() {
                 image={prop.images?.[0]}
                 video={prop.video}
                 title={prop.title}
-                location={`${prop.neighborhood || prop.location?.neighborhood || 'Centro'}, ${prop.city || prop.location?.city || 'Imbituba'}`}
+                location={`${prop.neighborhood || 'Centro'}, ${prop.city || 'Imbituba'}`}
                 price={prop.price}
                 type={prop.type || prop.category || 'Imóvel'}
               />

@@ -1,8 +1,11 @@
-import listings from '@/data/listings.json';
+import { getAllProperties } from '@/lib/properties';
+
+export const revalidate = 60;
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://charlesnobre.com.br';
-  
+  const listings = await getAllProperties();
+
   const propertiesXml = listings.map(listing => `
     <Listing>
       <ListingID>${listing.id}</ListingID>
@@ -12,9 +15,9 @@ export async function GET() {
       <Featured>false</Featured>
       <Location>
         <Country Abbreviation="BR">Brasil</Country>
-        <State Abbreviation="${listing.location.state}">${listing.location.state}</State>
-        <City>${listing.location.city}</City>
-        <Neighborhood>${listing.location.neighborhood}</Neighborhood>
+        <State Abbreviation="${listing.state}">${listing.state}</State>
+        <City>${listing.city}</City>
+        <Neighborhood>${listing.neighborhood}</Neighborhood>
       </Location>
       <Details>
         <PropertyType>${listing.category === 'Residencial' ? 'Residential / Home' : 'Land / Lot'}</PropertyType>

@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin, hasServiceRole } from '@/lib/supabase-admin';
+import { toCanonical, toSupabase, normalizeLegacy } from '@/lib/property-shape';
+import { isAuthenticated } from '@/lib/admin-auth';
 import fs from 'fs';
 import path from 'path';
 
 const DATA_PATH = path.join(process.cwd(), 'src/data/listings.json');
 
+function readLocalCanonical() {
+  const fileContents = fs.readFileSync(DATA_PATH, 'utf8');
+  const data = JSON.parse(fileContents);
+  return Array.isArray(data) ? data.map(normalizeLegacy).map((it) => toCanonical(it ?? {})) : [];
+}
+
 export async function GET() {
   try {
-    // 1. Tentar buscar do Supabase com timeout de 3 segundos
-    console.log('API: Iniciando busca no Supabase...');
-    
     const dbPromise = supabase
       .from('properties')
       .select('*')
@@ -21,26 +27,16 @@ export async function GET() {
 
     const { data: dbData, error } = await Promise.race([dbPromise, timeoutPromise]);
 
-    if (!error && dbData && dbData.length > 0) {
-      console.log('API: Dados carregados do Supabase com sucesso');
-      return NextResponse.json(dbData);
+    if (!error && Array.isArray(dbData) && dbData.length > 0) {
+      return NextResponse.json(dbData.map(toCanonical));
     }
 
-    if (error) console.warn('API: Erro no Supabase:', error.message);
-    
-    // 2. Fallback para JSON local
-    console.log('API: Usando fallback JSON local');
-    const fileContents = fs.readFileSync(DATA_PATH, 'utf8');
-    const data = JSON.parse(fileContents);
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('API Error:', error.message);
-    // Garantir fallback mesmo em erro catastrófico ou timeout
+    if (error) console.warn('API properties: Supabase erro, usando fallback —', error.message);
+    return NextResponse.json(readLocalCanonical());
+  } catch (err) {
+    console.error('API properties GET:', err.message);
     try {
-      console.log('API: Fallback de emergência (JSON local)');
-      const fileContents = fs.readFileSync(DATA_PATH, 'utf8');
-      const data = JSON.parse(fileContents);
-      return NextResponse.json(data);
+      return NextResponse.json(readLocalCanonical());
     } catch (fsError) {
       return NextResponse.json({ error: 'Falha crítica ao carregar propriedades' }, { status: 500 });
     }
@@ -48,34 +44,56 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  try {
-    const newData = await request.json();
-    
-    // Se for um array (reorder massivo), iteramos ou atualizamos
-    if (Array.isArray(newData)) {
-      for (const prop of newData) {
-        await supabase.from('properties').upsert({
-          id: prop.id,
-          title: prop.title,
-          images: prop.images,
-          video: prop.video,
-          price: prop.price,
-          description: prop.description,
-          type: prop.type,
-          intent: prop.intent,
-          location: prop.location,
-          features: prop.features
-        });
-      }
-    } else {
-      // Único imóvel
-      const { error } = await supabase.from('properties').upsert(newData);
-      if (error) throw error;
-    }
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Save Error:', error);
+  if (!hasServiceRole) {
+    return NextResponse.json({
+      error: 'SUPABASE_SERVICE_ROLE_KEY ausente — defina em .env.local pra liberar gravação',
+    }, { status: 503 });
+  }
+
+  try {
+    const body = await request.json();
+    const rows = Array.isArray(body) ? body : [body];
+    const payload = rows.map((r) => toSupabase(normalizeLegacy(r)));
+
+    const { error } = await supabaseAdmin.from('properties').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Supabase upsert error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, count: payload.length });
+  } catch (err) {
+    console.error('API properties POST:', err);
     return NextResponse.json({ error: 'Falha ao gravar no Supabase' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  }
+  if (!hasServiceRole) {
+    return NextResponse.json({
+      error: 'SUPABASE_SERVICE_ROLE_KEY ausente — defina em .env.local pra liberar gravação',
+    }, { status: 503 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 });
+
+    const { error } = await supabaseAdmin.from('properties').delete().eq('id', id);
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('API properties DELETE:', err);
+    return NextResponse.json({ error: 'Falha ao deletar' }, { status: 500 });
   }
 }

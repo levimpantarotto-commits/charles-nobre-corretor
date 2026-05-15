@@ -5,11 +5,20 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SearchBar from '@/components/SearchBar';
 import { PropertyCard } from '@/components/PropertyGrid';
-import listings from '@/data/listings.json';
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const [results, setResults] = useState([]);
+  const [allListings, setAllListings] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/properties')
+      .then((r) => r.json())
+      .then((data) => { if (alive && Array.isArray(data)) setAllListings(data); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     const intent = searchParams.get('intent');
@@ -18,21 +27,21 @@ function SearchResultsContent() {
     const neighborhood = searchParams.get('neighborhood');
     const query = searchParams.get('query')?.toLowerCase();
 
-    let filtered = listings;
+    let filtered = allListings;
 
     if (intent) filtered = filtered.filter(p => p.intent === intent);
-    if (type) filtered = filtered.filter(p => p.type.toLowerCase() === type.toLowerCase());
-    if (city) filtered = filtered.filter(p => p.location.city.toLowerCase() === city.toLowerCase());
-    if (neighborhood) filtered = filtered.filter(p => p.location.neighborhood.toLowerCase() === neighborhood.toLowerCase());
+    if (type) filtered = filtered.filter(p => (p.type || '').toLowerCase() === type.toLowerCase());
+    if (city) filtered = filtered.filter(p => (p.city || '').toLowerCase() === city.toLowerCase());
+    if (neighborhood) filtered = filtered.filter(p => (p.neighborhood || '').toLowerCase() === neighborhood.toLowerCase());
     if (query) {
-      filtered = filtered.filter(p => 
-        p.title.toLowerCase().includes(query) || 
-        p.description.toLowerCase().includes(query)
+      filtered = filtered.filter(p =>
+        p.title.toLowerCase().includes(query) ||
+        (p.description || '').toLowerCase().includes(query)
       );
     }
 
     setResults(filtered);
-  }, [searchParams]);
+  }, [searchParams, allListings]);
 
   return (
     <main className="search-page">
@@ -58,7 +67,7 @@ function SearchResultsContent() {
                   id={prop.id}
                   image={prop.images[0]}
                   title={prop.title}
-                  location={`${prop.location.neighborhood}, ${prop.location.city}`}
+                  location={`${prop.neighborhood}, ${prop.city}`}
                   price={prop.price}
                   type={prop.type}
                 />

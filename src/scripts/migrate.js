@@ -2,12 +2,23 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
+// Le .env.local
+try { require('dotenv').config({ path: '.env.local' }); } catch {}
+
 // Carregando do listings.json e site_configs.json local
 const properties = JSON.parse(fs.readFileSync('./src/data/listings.json', 'utf8'));
 const site_configs = JSON.parse(fs.readFileSync('./src/data/site_configs.json', 'utf8'));
 
-const supabaseUrl = 'https://qilimxwoanxomukwifzl.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbGlteHdvYW54b211a3dpZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTI1NjYsImV4cCI6MjA5MjIyODU2Nn0.edXoti2fJwa9AoANSzGj1oZGvqm7uiRgjQTwoLr-Qxg';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Faltam variáveis Supabase em .env.local');
+  process.exit(1);
+}
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('Aviso: rodando com anon key — RLS pode bloquear inserts. Use SUPABASE_SERVICE_ROLE_KEY pra writes reais.');
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
