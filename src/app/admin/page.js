@@ -70,7 +70,7 @@ function LocalAdminLogin({ onLogin, error, submitting }) {
 }
 
 // ===== CATÁLOGO =====
-function CatalogTab({ properties, onCreate, onEdit, onDelete, showForm, formData, setFormData, onSubmit, onCancel, externalUrl, setExternalUrl, activeImgIndex, setActiveImgIndex, loading, searchTerm, setSearchTerm, editingId }) {
+function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm, formData, setFormData, onSubmit, onCancel, externalUrl, setExternalUrl, activeImgIndex, setActiveImgIndex, loading, searchTerm, setSearchTerm, editingId }) {
   const stats = useMemo(() => {
     const total = properties.length;
     const byType = {};
@@ -171,8 +171,19 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, showForm, formData
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
-          <div className="empty-grid"><ImageIcon size={32} /> Nenhum imóvel encontrado.</div>
+        {filtered.length === 0 && loading && (
+          <div className="empty-grid"><ImageIcon size={32} /> Carregando imóveis...</div>
+        )}
+        {filtered.length === 0 && !loading && properties.length === 0 && (
+          <div className="empty-grid">
+            <ImageIcon size={32} />
+            <strong style={{ color: '#94a3b8' }}>Nenhum imóvel cadastrado.</strong>
+            <small style={{ color: '#475569' }}>Clique em "Novo" pra começar, ou verifique a conexão com o Supabase.</small>
+            <button onClick={onReload} style={{ marginTop: 8, background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', padding: '0.5rem 1rem', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem' }}>🔄 Recarregar</button>
+          </div>
+        )}
+        {filtered.length === 0 && !loading && properties.length > 0 && (
+          <div className="empty-grid"><ImageIcon size={32} /> Nenhum imóvel bate com a busca.</div>
         )}
       </div>
 
@@ -471,11 +482,26 @@ export default function AdminPage() {
   async function fetchProperties() {
     try {
       setLoadingProps(true);
-      const res = await fetch('/api/properties');
+      const res = await fetch('/api/properties', { cache: 'no-store' });
+      if (!res.ok) {
+        console.error('properties: HTTP', res.status);
+        setProperties([]);
+        return;
+      }
       const data = await res.json();
-      setProperties(Array.isArray(data) ? data : []);
-    } catch (err) { console.error('properties:', err); }
-    finally { setLoadingProps(false); }
+      if (Array.isArray(data)) {
+        console.log(`[admin] /api/properties → ${data.length} imóveis`);
+        setProperties(data);
+      } else {
+        console.error('properties: response não é array', data);
+        setProperties([]);
+      }
+    } catch (err) {
+      console.error('properties: fetch falhou', err);
+      setProperties([]);
+    } finally {
+      setLoadingProps(false);
+    }
   }
 
   async function fetchSiteConfigs() {
@@ -628,6 +654,7 @@ export default function AdminPage() {
             onCreate={handleCreate}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onReload={fetchProperties}
             showForm={showForm}
             formData={formData}
             setFormData={setFormData}
