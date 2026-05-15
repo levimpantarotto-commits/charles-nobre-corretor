@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabase-admin';
 import { isAuthenticated } from '@/lib/admin-auth';
+import { logActivity } from '@/lib/activity-log';
 
 const VALID_STATUS = new Set(['novo', 'em_atendimento', 'convertido', 'perdido']);
 
@@ -39,6 +40,12 @@ export async function PATCH(request, { params }) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  if (patch.status) {
+    logActivity({
+      message: `Lead "${data.name}" → ${patch.status}`,
+      context: { id, status: patch.status },
+    });
+  }
   return NextResponse.json(data);
 }
 
@@ -54,5 +61,6 @@ export async function DELETE(_request, { params }) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  logActivity({ message: `Lead excluído`, context: { id } });
   return NextResponse.json({ success: true });
 }

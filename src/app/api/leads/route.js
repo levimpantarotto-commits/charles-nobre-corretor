@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabase-admin';
 import { isAuthenticated } from '@/lib/admin-auth';
+import { logActivity } from '@/lib/activity-log';
 
 // POST público: captura lead do site
 export async function POST(request) {
@@ -31,6 +32,11 @@ export async function POST(request) {
     console.error('Erro inserindo lead:', error);
     return NextResponse.json({ error: 'Falha ao registrar' }, { status: 500 });
   }
+  logActivity({
+    agent: 'site',
+    message: `Novo lead capturado: ${row.name}${row.property_title ? ` (interesse em ${row.property_title})` : ''}`,
+    context: { name: row.name, source: row.source },
+  });
   return NextResponse.json({ success: true });
 }
 

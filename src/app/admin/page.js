@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 import Sidebar from './_components/Sidebar';
 import LeadsKanban from './_components/LeadsKanban';
+import AgendaTab from './_components/AgendaTab';
+import ApprovalsTab from './_components/ApprovalsTab';
+import LogsTab from './_components/LogsTab';
+import AgentsTab from './_components/AgentsTab';
 
 // ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
@@ -444,6 +448,7 @@ export default function AdminPage() {
   const [siteConfigs, setSiteConfigs] = useState({ about_bio: '', contact_email: '', contact_phone: '', hero_title: '' });
   const [formData, setFormData] = useState({ title: '', description: '', price: '', city: 'Imbituba', neighborhood: '', state: 'SC', category: 'Residencial', type: '', intent: 'venda', images: [], video: '' });
   const [leadsCount, setLeadsCount] = useState(0);
+  const [approvalsCount, setApprovalsCount] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -460,6 +465,7 @@ export default function AdminPage() {
     fetchProperties();
     fetchSiteConfigs();
     fetchLeadsCount();
+    fetchApprovalsCount();
   }, [isLoggedIn]);
 
   async function fetchProperties() {
@@ -485,6 +491,14 @@ export default function AdminPage() {
       const res = await fetch('/api/leads', { credentials: 'include' });
       const data = await res.json();
       if (Array.isArray(data)) setLeadsCount(data.filter((l) => l.status === 'novo').length);
+    } catch (err) { /* ignora */ }
+  }
+
+  async function fetchApprovalsCount() {
+    try {
+      const res = await fetch('/api/approvals?status=pending', { credentials: 'include' });
+      const data = await res.json();
+      if (Array.isArray(data)) setApprovalsCount(data.length);
     } catch (err) { /* ignora */ }
   }
 
@@ -604,6 +618,7 @@ export default function AdminPage() {
         onChange={setActiveTab}
         onLogout={handleLogout}
         leadsCount={leadsCount}
+        approvalsCount={approvalsCount}
       />
 
       <main className="admin-main">
@@ -629,6 +644,10 @@ export default function AdminPage() {
           />
         )}
         {activeTab === 'leads' && <LeadsKanban />}
+        {activeTab === 'agenda' && <AgendaTab />}
+        {activeTab === 'approvals' && <ApprovalsTab />}
+        {activeTab === 'agents' && <AgentsTab />}
+        {activeTab === 'logs' && <LogsTab />}
         {activeTab === 'settings' && (
           <SettingsTab
             siteConfigs={siteConfigs}

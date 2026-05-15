@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabase-admin';
 import { toCanonical, toSupabase, normalizeLegacy } from '@/lib/property-shape';
 import { isAuthenticated } from '@/lib/admin-auth';
+import { logActivity } from '@/lib/activity-log';
 import fs from 'fs';
 import path from 'path';
 
@@ -64,6 +65,12 @@ export async function POST(request) {
       console.error('Supabase upsert error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    logActivity({
+      message: payload.length === 1
+        ? `Imóvel salvo: ${payload[0].title}`
+        : `${payload.length} imóveis salvos em lote`,
+      context: { ids: payload.map((p) => p.id) },
+    });
     return NextResponse.json({ success: true, count: payload.length });
   } catch (err) {
     console.error('API properties POST:', err);
@@ -91,6 +98,7 @@ export async function DELETE(request) {
       console.error('Supabase delete error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    logActivity({ message: `Imóvel excluído`, context: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('API properties DELETE:', err);

@@ -1,13 +1,17 @@
 'use client';
-import { Building2, Users, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles } from 'lucide-react';
 
 const TABS = [
   { id: 'catalog', label: 'Catálogo', Icon: Building2 },
   { id: 'leads', label: 'Leads', Icon: Users },
+  { id: 'agenda', label: 'Agenda', Icon: Calendar },
+  { id: 'approvals', label: 'Aprovações', Icon: CheckSquare },
+  { id: 'agents', label: 'IA & Agentes', Icon: Sparkles },
+  { id: 'logs', label: 'Logs', Icon: Terminal },
   { id: 'settings', label: 'Configurações', Icon: SettingsIcon },
 ];
 
-export default function Sidebar({ activeTab, onChange, onLogout, leadsCount = 0 }) {
+export default function Sidebar({ activeTab, onChange, onLogout, leadsCount = 0, approvalsCount = 0 }) {
   return (
     <aside className="admin-sidebar">
       <div className="brand">
@@ -29,6 +33,9 @@ export default function Sidebar({ activeTab, onChange, onLogout, leadsCount = 0 
             <span>{label}</span>
             {id === 'leads' && leadsCount > 0 && (
               <span className="badge">{leadsCount}</span>
+            )}
+            {id === 'approvals' && approvalsCount > 0 && (
+              <span className="badge">{approvalsCount}</span>
             )}
           </button>
         ))}
