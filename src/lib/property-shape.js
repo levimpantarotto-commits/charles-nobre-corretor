@@ -1,35 +1,25 @@
-// Adapter entre o shape canônico do app e o schema atual do Supabase.
-// Colunas reais do Supabase hoje: id, title, description, price, city, neighborhood,
-// category, features, images, created_at.
-// Campos extras (state, type, intent, video, area) ficam empacotados em `features.meta`
-// até que o schema receba as colunas correspondentes via DDL.
+// Adapter entre o shape canônico do app e o schema do Supabase.
+// Schema (após migração 001): id, title, description, price, city, neighborhood,
+// state, type, intent, category, features (text[] ou jsonb array), images,
+// video, area, created_at.
 
 export function toCanonical(row) {
   if (!row) return null;
-  const features = row.features;
-  let list = [];
-  let meta = {};
-  if (Array.isArray(features)) {
-    list = features;
-  } else if (features && typeof features === 'object') {
-    list = Array.isArray(features.list) ? features.list : [];
-    meta = features.meta && typeof features.meta === 'object' ? features.meta : {};
-  }
   return {
     id: row.id,
     title: row.title ?? '',
     description: row.description ?? '',
     price: Number(row.price) || 0,
-    city: row.city ?? meta.city ?? '',
-    neighborhood: row.neighborhood ?? meta.neighborhood ?? '',
-    state: meta.state ?? 'SC',
-    type: meta.type ?? '',
-    intent: meta.intent ?? 'venda',
+    city: row.city ?? '',
+    neighborhood: row.neighborhood ?? '',
+    state: row.state ?? 'SC',
+    type: row.type ?? '',
+    intent: row.intent ?? 'venda',
     category: row.category ?? '',
     images: Array.isArray(row.images) ? row.images : [],
-    video: meta.video ?? '',
-    features: list,
-    area: meta.area ?? null,
+    video: row.video ?? '',
+    features: Array.isArray(row.features) ? row.features : [],
+    area: row.area ?? null,
     created_at: row.created_at ?? null,
   };
 }
@@ -42,22 +32,18 @@ export function toSupabase(canonical) {
     price: Number(canonical.price) || 0,
     city: canonical.city ?? '',
     neighborhood: canonical.neighborhood ?? '',
+    state: canonical.state ?? 'SC',
+    type: canonical.type ?? '',
+    intent: canonical.intent ?? 'venda',
     category: canonical.category ?? '',
     images: Array.isArray(canonical.images) ? canonical.images : [],
-    features: {
-      list: Array.isArray(canonical.features) ? canonical.features : [],
-      meta: {
-        state: canonical.state ?? 'SC',
-        type: canonical.type ?? '',
-        intent: canonical.intent ?? 'venda',
-        video: canonical.video ?? '',
-        area: canonical.area ?? null,
-      },
-    },
+    video: canonical.video ?? '',
+    features: Array.isArray(canonical.features) ? canonical.features : [],
+    area: canonical.area ?? null,
   };
 }
 
-// Aceita tanto o formato antigo (location: {city, neighborhood, state}) quanto o canônico.
+// Aceita formato antigo (location: {city, neighborhood, state}) e converte pro canônico achatado.
 export function normalizeLegacy(item) {
   if (!item) return null;
   if (item.location && typeof item.location === 'object') {
