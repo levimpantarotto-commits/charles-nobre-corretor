@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Edit3, Image as ImageIcon, MapPin, Search, X,
-  ChevronLeft, ChevronRight, Save,
+  ChevronLeft, ChevronRight, Save, Upload,
   Home as HomeIcon, TrendingUp, MapPinned, DollarSign,
 } from 'lucide-react';
 import Sidebar from './_components/Sidebar';
@@ -128,6 +128,47 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
     setActiveImgIndex(formData.images.length);
   };
 
+  const fileInputRef = useRef(null);
+  const [uploadStatus, setUploadStatus] = useState(null);
+
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadStatus({ done: 0, total: files.length, errors: [] });
+
+    const formDataBody = new FormData();
+    files.forEach((f) => formDataBody.append('files', f));
+    formDataBody.append('folder', formData.title || 'imovel');
+
+    try {
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: formDataBody });
+      const json = await res.json();
+
+      if (!res.ok) {
+        setUploadStatus({ done: 0, total: files.length, errors: [json.error || 'Erro desconhecido'] });
+        return;
+      }
+
+      if (Array.isArray(json.uploaded) && json.uploaded.length > 0) {
+        const novas = json.uploaded;
+        setFormData(prev => ({ ...prev, images: [...prev.images, ...novas] }));
+        setActiveImgIndex(formData.images.length);
+      }
+
+      setUploadStatus({
+        done: json.uploaded?.length || 0,
+        total: files.length,
+        errors: (json.erros || []).map((er) => `${er.name}: ${er.error}`),
+      });
+    } catch (err) {
+      setUploadStatus({ done: 0, total: files.length, errors: [err.message] });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setTimeout(() => setUploadStatus(null), 4000);
+    }
+  };
+
   return (
     <div className="catalog-wrap">
       <div className="catalog-head">
@@ -245,7 +286,33 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
                   </Reorder.Group>
                 </div>
                 <div className="add-url-section">
-                  <p className="hint">Cole o link do Google Drive abaixo:</p>
+                  <p className="hint">Subir fotos do computador:</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-upload-file"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadStatus && uploadStatus.done < uploadStatus.total}
+                  >
+                    <Upload size={16}/>
+                    {uploadStatus
+                      ? `Subindo ${uploadStatus.done}/${uploadStatus.total}...`
+                      : 'Escolher arquivos'}
+                  </button>
+                  {uploadStatus?.errors?.length > 0 && (
+                    <div className="upload-errors">
+                      {uploadStatus.errors.map((er, i) => <div key={i}>{er}</div>)}
+                    </div>
+                  )}
+
+                  <p className="hint" style={{ marginTop: '1rem' }}>Ou cole link do Google Drive:</p>
                   <form onSubmit={handleExternalUrlAdd} className="url-form">
                     <input type="text" placeholder="https://drive.google.com/..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} />
                     <button type="submit"><Plus size={18}/></button>
@@ -395,6 +462,15 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
         .url-form { display: flex; gap: 4px; }
         .url-form input { background: #0f172a; border: 1px solid #1e293b; padding: 0.7rem; border-radius: 8px; color: #fff; font-size: 0.8rem; flex-grow: 1; }
         .url-form button { background: #eab308; color: #020617; padding: 0.7rem; border-radius: 8px; border: none; cursor: pointer; }
+        .btn-upload-file {
+          width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          background: #eab308; color: #020617; padding: 0.8rem; border-radius: 8px; border: none;
+          cursor: pointer; font-weight: 900; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+          transition: 0.2s;
+        }
+        .btn-upload-file:hover:not(:disabled) { background: #facc15; }
+        .btn-upload-file:disabled { background: #1e293b; color: #64748b; cursor: wait; }
+        .upload-errors { margin-top: 0.6rem; font-size: 0.7rem; color: #ef4444; line-height: 1.4; }
 
         .col-preview { background: #020617; display: flex; align-items: center; justify-content: center; padding: 3rem; position: relative; }
         .preview-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
