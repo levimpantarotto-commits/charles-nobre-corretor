@@ -1,61 +1,54 @@
-import { getAllProperties } from '@/lib/properties';
+// Feed VRSync XML pros portais imobiliarios (OLX Pro, ZAP, Viva Real, ImovelWeb, Chaves na Mao).
+// URL publica: /api/feed
+// Cache: 1h (revalidate). Portais puxam de 4h em 4h tipicamente.
 
-export const revalidate = 60;
+import { supabase } from '@/lib/supabase';
+import { toCanonical } from '@/lib/property-shape';
+import { buildVRSyncFeed } from '@/lib/vrsync';
 
-export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://charlesnobre.com.br';
-  const listings = await getAllProperties();
+export const revalidate = 3600;
 
-  const propertiesXml = listings.map(listing => `
-    <Listing>
-      <ListingID>${listing.id}</ListingID>
-      <Title><![CDATA[${listing.title}]]></Title>
-      <TransactionType>${listing.type === 'Venda' ? 'For Sale' : 'For Rent'}</TransactionType>
-      <DetailViewUrl>${baseUrl}/imoveis/${listing.id}</DetailViewUrl>
-      <Featured>false</Featured>
-      <Location>
-        <Country Abbreviation="BR">Brasil</Country>
-        <State Abbreviation="${listing.state}">${listing.state}</State>
-        <City>${listing.city}</City>
-        <Neighborhood>${listing.neighborhood}</Neighborhood>
-      </Location>
-      <Details>
-        <PropertyType>${listing.category === 'Residencial' ? 'Residential / Home' : 'Land / Lot'}</PropertyType>
-        <Description><![CDATA[${listing.description}]]></Description>
-        <ListPrice Currency="BRL">${listing.price}</ListPrice>
-        <LivingArea Unit="square metres">${listing.area}</LivingArea>
-        <Features>
-          ${listing.features.map(f => `<Feature>${f}</Feature>`).join('')}
-        </Features>
-      </Details>
-      <Media>
-        ${listing.images.map(img => `
-          <Item medium="image" caption="${listing.title}">${baseUrl}${img}</Item>
-        `).join('')}
-      </Media>
-      <Contact>
-        <Name>Charles R. Nobre</Name>
-        <Email>levimpantarotto@gmail.com</Email>
-        <Website>${baseUrl}</Website>
-      </Contact>
-    </Listing>
-  `).join('');
+function baseUrlFromRequest(request) {
+  const env = process.env.NEXT_PUBLIC_SITE_URL;
+  if (env) return env.replace(/\/$/, '');
+  try {
+    const u = new URL(request.url);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return 'https://charlesrnobre.com.br';
+  }
+}
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<ListingDataFeed xmlns="http://www.viva-real.com/schemas/1.0/Vivanet" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Header>
-    <Provider>Charles R. Nobre Site</Provider>
-    <Email>levimpantarotto@gmail.com</Email>
-    <ContactName>Charles R. Nobre</ContactName>
-  </Header>
-  <Listings>
-    ${propertiesXml}
-  </Listings>
-</ListingDataFeed>`;
+export async function GET(request) {
+  const baseUrl = baseUrlFromRequest(request);
+
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return new Response(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<error>${error.message}</error>`,
+      { status: 500, headers: { 'Content-Type': 'application/xml; charset=utf-8' } }
+    );
+  }
+
+  const properties = (data || []).map(toCanonical);
+
+  const xml = buildVRSyncFeed(properties, {
+    baseUrl,
+    cliente: 'Charles R. Nobre Consultoria Imobiliaria',
+    creci: '37177',
+    email: process.env.ADMIN_CHARLES_EMAIL || '',
+  });
 
   return new Response(xml, {
+    status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      'X-Feed-Count': String(properties.length),
     },
   });
 }
