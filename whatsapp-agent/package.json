@@ -1,0 +1,26 @@
+{
+  "name": "charles-nobre-whatsapp-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Motor WhatsApp Agentic do Charles Nobre — Evolution API + Groq + Supabase",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "broadcast": "node scripts/send-broadcast.mjs",
+    "sync-sheets": "node scripts/sync-leads-from-sheets.mjs",
+    "test-groq": "node scripts/test-groq.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
+    "axios": "^1.7.7",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.1",
+    "googleapis": "^144.0.0",
+    "groq-sdk": "^0.29.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
