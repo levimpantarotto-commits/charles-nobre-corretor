@@ -78,7 +78,12 @@ REGRAS DURAS:
 - Nao prometa preço abaixo do anunciado sem confirmar com o Charles.
 - Nao agende visita sem antes confirmar disponibilidade — diga "vou checar a agenda do Charles e te confirmo".
 - Se o lead pedir pra falar com humano/pessoa de verdade, responde: "Claro, em instantes o Charles te chama por aqui." (esse caso ja tem curto-circuito no codigo).
-- Se nao souber algo (escola, comercio, transporte), assume com sinceridade: "nao tenho essa info de cabeça, te respondo isso ate amanha".`;
+- Se nao souber algo (escola, comercio, transporte), assume com sinceridade: "nao tenho essa info de cabeça, te respondo isso ate amanha".
+
+REGRAS DE HONESTIDADE (CRITICO):
+- Voce e um ASSISTENTE DIGITAL do Charles. Se o lead perguntar "voce e uma IA?" / "isso e bot?" / "robo?" / "automatico?", responde: "Sou o assistente digital do Charles. Ele acompanha a conversa e entra quando precisar." NUNCA negue que e IA/assistente. NUNCA diga "sou humano" ou "sou o Charles em pessoa".
+- NUNCA invente bairros, regioes, imoveis, precos ou caracteristicas. Se o lead manda algo confuso ou ambiguo (ex: so um nome, so uma palavra, "ok", "rosa", "amarelo"), NAO interprete como localizacao ou caracteristica. Pergunte de volta: "Desculpa, nao entendi — pode me explicar?". Pra nomes (ex: "Giovane Rosa"), assuma que e nome proprio e nao tente decodificar como bairro.
+- Se o lead se identificar como proprietario, anunciante, jornalista, concorrente, ou disser que esta "so testando", responda educadamente: "Entendi, agradeco o contato. Qualquer coisa que precisar de imovel na regiao, estou por aqui." E nao continue qualificando.`;
 }
 
 // Etapa 1: chamada do webhook assim que chega inbound.
@@ -192,13 +197,18 @@ export async function processBatch(batch) {
 }
 
 function splitInChunks(body) {
-  // Quebra por dupla quebra de linha (preferido) ou por sentenca grande.
-  let chunks = body.split(/\n\s*\n+/).map((c) => c.trim()).filter(Boolean);
-  // Se veio em uma so e tem > 240 chars, tenta quebrar em frases.
-  if (chunks.length === 1 && chunks[0].length > 240) {
-    chunks = chunks[0].split(/(?<=[.?!])\s+/).map((c) => c.trim()).filter(Boolean);
-  }
+  // SO quebra se a IA explicitamente usou DUPLA QUEBRA DE LINHA (intencional).
+  // NAO quebra por sentenca — antes quebrava demais (4 bolhas pra "Sou Charles. Tenho
+  // 12 anos. Estou aqui. Voce procura?") e ficava insuportavel pro lead.
+  const chunks = body.split(/\n\s*\n+/).map((c) => c.trim()).filter(Boolean);
   return chunks.length ? chunks : [body];
+}
+
+// Detecta se um "phone" no banco e na verdade um LID nao-resolvido.
+// LID do WhatsApp tem 14+ digitos. Phone BR valido tem 12 ou 13.
+function pareceLid(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.length >= 14;
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -218,6 +228,13 @@ function tempoDigitacao(chunkLen) {
 }
 
 async function enviarResposta(phone, body, leadId, opts = {}) {
+  // Safeguard: nao envia pra LID nao-resolvido (mensagem fantasma).
+  // Charles assume a conversa manualmente nesses casos.
+  if (pareceLid(phone)) {
+    log.warn('Envio bloqueado — phone parece LID nao-resolvido', { phone, leadId, body: body?.slice(0, 80) });
+    return { sent: false, blocked: 'lid_unresolved', phone };
+  }
+
   const chunks = splitInChunks(body);
   const results = [];
 
