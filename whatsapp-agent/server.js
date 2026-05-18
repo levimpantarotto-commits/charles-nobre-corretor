@@ -7,6 +7,7 @@ import { persistIncoming, processBatch, enviarManual } from './lib/conversation.
 import { parseIncomingMessage, createInstance, deleteInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
 import { normalizePhone } from './lib/supabase.js';
 import { coalesceIncoming } from './lib/coalescer.js';
+import { syncLeadsFromSheets } from './lib/sync-leads.js';
 import { log } from './lib/logger.js';
 
 dotenv.config();
@@ -104,6 +105,17 @@ app.post('/webhook/evolution', async (req, res) => {
     .catch((err) => {
       log.error('Falha processando inbound', { phone: parsed.phone, err: err.message, stack: err.stack });
     });
+});
+
+// --- SYNC LEADS DA GOOGLE SHEETS (puxa planilha -> Supabase) ---
+app.post('/admin/sync-sheets', requireToken, async (_req, res) => {
+  try {
+    const result = await syncLeadsFromSheets();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    log.error('Falha no sync-sheets', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- ENVIO MANUAL (pra dashboard /admin disparar mensagens) ---
