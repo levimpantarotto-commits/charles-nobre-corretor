@@ -26,6 +26,27 @@ function chatIdToPhone(chatId) {
   return String(chatId || '').replace(/@.*$/, '');
 }
 
+function isLid(chatId) {
+  return String(chatId || '').endsWith('@lid');
+}
+
+// Resolve LID -> phone number real consultando o store do WAHA.
+// Requer noweb.store.enabled=true na sessao.
+export async function resolveLidToPhone(lid) {
+  const lidNum = String(lid || '').replace(/@.*$/, '');
+  if (!lidNum) return null;
+  try {
+    const { data } = await http.get(`/api/${SESSION}/lids/${lidNum}`);
+    // Resposta esperada: { lid: "...@lid", pn: "55XXX@c.us" } ou similar
+    const pn = data?.pn || data?.phoneNumber || data?.phone;
+    if (pn) return chatIdToPhone(pn);
+    return null;
+  } catch (err) {
+    log.warn('Falha resolvendo LID', { lid: lidNum, status: err.response?.status, err: err.message });
+    return null;
+  }
+}
+
 // --- Instancia / pareamento ---
 
 export async function createInstance(webhookUrl) {
@@ -157,6 +178,7 @@ export function parseIncomingMessage(payload) {
   const from = data.from || data.key?.remoteJid;
   const phone = chatIdToPhone(from);
   if (!phone) return null;
+  const fromIsLid = isLid(from);
 
   let body = data.body || data.message?.conversation || data.message?.extendedTextMessage?.text || '';
   let mediaType = null;
@@ -178,6 +200,7 @@ export function parseIncomingMessage(payload) {
   const ts = data.timestamp || data.messageTimestamp;
   return {
     phone,
+    fromIsLid,
     pushName: data.notifyName || data._data?.notifyName || data.pushName || null,
     body,
     mediaType,

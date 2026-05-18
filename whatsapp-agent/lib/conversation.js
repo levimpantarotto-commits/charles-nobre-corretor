@@ -2,7 +2,7 @@
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel } from './catalogo.js';
 import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
-import { sendText } from './waha.js';
+import { sendText, resolveLidToPhone } from './waha.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {
@@ -39,7 +39,19 @@ REGRAS DURAS:
 }
 
 export async function handleIncomingMessage(incoming) {
-  const { phone, pushName, body, evolutionMessageId, mediaType } = incoming;
+  let { phone, pushName, body, evolutionMessageId, mediaType } = incoming;
+  const { fromIsLid } = incoming;
+
+  // Se chegou como LID (formato Multi-Device do WhatsApp), resolve pro telefone real.
+  if (fromIsLid) {
+    const realPhone = await resolveLidToPhone(phone);
+    if (realPhone) {
+      log.info('LID resolvido', { lid: phone, phone: realPhone });
+      phone = realPhone;
+    } else {
+      log.warn('Nao foi possivel resolver LID, usando LID como phone', { lid: phone });
+    }
+  }
 
   log.info('Mensagem recebida', { phone, pushName, body: body?.slice(0, 80) });
 
