@@ -9,6 +9,7 @@ import { normalizePhone } from './lib/supabase.js';
 import { coalesceIncoming } from './lib/coalescer.js';
 import { syncLeadsFromSheets } from './lib/sync-leads.js';
 import { runBroadcast } from './lib/broadcast.js';
+import { supabase } from './lib/supabase.js';
 import { log } from './lib/logger.js';
 
 dotenv.config();
@@ -115,6 +116,44 @@ app.post('/admin/sync-sheets', requireToken, async (_req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     log.error('Falha no sync-sheets', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- CONVERSAS (lista mensagens recentes pra monitorar) ---
+// GET /admin/conversas?since=<minutes>&limit=<N>&direction=in|out
+app.get('/admin/conversas', requireToken, async (req, res) => {
+  try {
+    const sinceMin = parseInt(req.query.since, 10) || 30;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const direction = req.query.direction; // opcional: 'in' ou 'out'
+    const cutoff = new Date(Date.now() - sinceMin * 60_000).toISOString();
+
+    let q = supabase
+      .from('whatsapp_messages')
+      .select('id, phone, direction, body, created_at, agent_response, meta, lead_id')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (direction === 'in' || direction === 'out') q = q.eq('direction', direction);
+
+    const { data: msgs, error } = await q;
+    if (error) throw error;
+
+    // Enriquece com nome do lead em uma chamada
+    const leadIds = [...new Set((msgs || []).map((m) => m.lead_id).filter(Boolean))];
+    let leadsById = {};
+    if (leadIds.length) {
+      const { data: leads } = await supabase.from('leads').select('id, name').in('id', leadIds);
+      leadsById = Object.fromEntries((leads || []).map((l) => [l.id, l.name]));
+    }
+    const enriched = (msgs || []).map((m) => ({
+      ...m,
+      name: leadsById[m.lead_id] || null,
+    }));
+    res.json({ ok: true, sinceMin, count: enriched.length, msgs: enriched });
+  } catch (err) {
+    log.error('Falha listando conversas', { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });
