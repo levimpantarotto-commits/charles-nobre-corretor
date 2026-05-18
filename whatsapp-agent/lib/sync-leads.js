@@ -25,15 +25,21 @@ export async function syncLeadsFromSheets() {
       continue;
     }
 
-    // Monta nota com contexto da origem se for Meta Ads (tem campaign/ad).
-    let notes = row.observacao || row.observacoes || row.interesse || null;
-    if (!notes && (row.campaign_name || row.ad_name)) {
-      const partes = [];
-      if (row.campaign_name) partes.push(`campanha: ${row.campaign_name}`);
-      if (row.ad_name) partes.push(`anuncio: ${row.ad_name}`);
-      if (row.platform) partes.push(`plataforma: ${row.platform}`);
-      notes = `Lead Meta Ads — ${partes.join(' · ')}`;
-    }
+    // Monta nota: contexto Meta Ads + coluna ATUALIZACAO (preenchida manualmente
+    // pelo Charles/Levi com retorno de cliente que ja teve contato).
+    const partesContexto = [];
+    if (row.campaign_name) partesContexto.push(`campanha: ${row.campaign_name}`);
+    if (row.ad_name) partesContexto.push(`anuncio: ${row.ad_name}`);
+    if (row.platform) partesContexto.push(`plataforma: ${row.platform}`);
+
+    const partes = [];
+    if (partesContexto.length) partes.push(`Lead Meta Ads — ${partesContexto.join(' · ')}`);
+    const atualizacao = row.atualizacao || row['atualização'] || row.atualização || null;
+    if (atualizacao) partes.push(`ATUALIZAÇÃO: ${atualizacao}`);
+    const observacao = row.observacao || row.observacoes || row.interesse || null;
+    if (observacao) partes.push(observacao);
+
+    const notes = partes.length ? partes.join('\n\n') : null;
 
     const lead = {
       name: nome,

@@ -8,6 +8,7 @@ import { parseIncomingMessage, createInstance, deleteInstance, getQrCode, getIns
 import { normalizePhone } from './lib/supabase.js';
 import { coalesceIncoming } from './lib/coalescer.js';
 import { syncLeadsFromSheets } from './lib/sync-leads.js';
+import { runBroadcast } from './lib/broadcast.js';
 import { log } from './lib/logger.js';
 
 dotenv.config();
@@ -114,6 +115,19 @@ app.post('/admin/sync-sheets', requireToken, async (_req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     log.error('Falha no sync-sheets', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- BROADCAST (manda mensagem pros leads pendentes) ---
+// Body opcional: { dryRun, limit, skipNames: [], template }
+app.post('/admin/broadcast', requireToken, async (req, res) => {
+  try {
+    const opts = req.body || {};
+    const result = await runBroadcast(opts);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    log.error('Falha no broadcast', { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });
