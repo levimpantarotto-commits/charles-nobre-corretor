@@ -30,22 +30,66 @@ function isLid(chatId) {
   return String(chatId || '').endsWith('@lid');
 }
 
-// Resolve LID -> phone number real consultando o store do WAHA.
-// Requer noweb.store.enabled=true na sessao.
+// Resolve LID -> phone real. WAHA noweb tem variantes de endpoint conforme versao
+// e nem sempre tem o LID mapeado se a sessao foi recem-pareada (store nao sincronizou).
+// Tenta endpoints diretos primeiro, fallback pra busca em /contacts/all.
+let _contactsCache = { ts: 0, data: null };
+
+async function getAllContactsCached() {
+  if (_contactsCache.data && Date.now() - _contactsCache.ts < 60_000) return _contactsCache.data;
+  try {
+    const { data } = await http.get(`/api/${SESSION}/contacts/all`);
+    const list = Array.isArray(data) ? data : (data?.contacts || []);
+    _contactsCache = { ts: Date.now(), data: list };
+    return list;
+  } catch (err) {
+    log.debug('Falha listando contacts/all', { err: err.message, status: err.response?.status });
+    return [];
+  }
+}
+
 export async function resolveLidToPhone(lid) {
   if (!lid) return null;
-  const fullLid = lid.includes('@') ? lid : `${lid}@lid`;
-  const encodedLid = encodeURIComponent(fullLid);
-  try {
-    const { data } = await http.get(`/api/${SESSION}/lids/${encodedLid}`);
-    // Resposta esperada: { lid: "...@lid", pn: "55XXX@c.us" } ou similar
-    const pn = data?.pn || data?.phoneNumber || data?.phone;
-    if (pn) return chatIdToPhone(pn);
-    return null;
-  } catch (err) {
-    log.warn('Falha resolvendo LID', { lid: fullLid, status: err.response?.status, err: err.message });
-    return null;
+  const lidNum = String(lid).replace(/@.*$/, '');
+  if (!lidNum) return null;
+
+  // 1. Endpoints diretos — variantes conhecidas
+  const tentativas = [
+    `/api/${SESSION}/lids/${lidNum}`,
+    `/api/${SESSION}/lids/${encodeURIComponent(`${lidNum}@lid`)}`,
+    `/api/contacts/lid-pn?lid=${encodeURIComponent(`${lidNum}@lid`)}&session=${SESSION}`,
+  ];
+  for (const path of tentativas) {
+    try {
+      const { data } = await http.get(path);
+      const pn = data?.pn || data?.phoneNumber || data?.phone || data?.id;
+      if (pn) {
+        const phone = chatIdToPhone(pn);
+        if (phone && phone !== lidNum) {
+          log.info('LID resolvido', { via: path, lid: lidNum, phone });
+          return phone;
+        }
+      }
+    } catch (err) {
+      // segue pra proxima tentativa
+    }
   }
+
+  // 2. Fallback: lista todos contatos e procura pelo LID
+  const contatos = await getAllContactsCached();
+  for (const c of contatos) {
+    const cLid = (c.lid || '').replace(/@.*$/, '');
+    if (cLid && cLid === lidNum) {
+      const phone = chatIdToPhone(c.id || c.number || c.pn || '');
+      if (phone && phone !== lidNum) {
+        log.info('LID resolvido via contacts/all', { lid: lidNum, phone });
+        return phone;
+      }
+    }
+  }
+
+  log.warn('LID nao resolvido em nenhuma fonte', { lid: lidNum, tentativas: tentativas.length });
+  return null;
 }
 
 // --- Instancia / pareamento ---
