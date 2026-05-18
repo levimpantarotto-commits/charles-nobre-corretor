@@ -2,7 +2,8 @@
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel } from './catalogo.js';
 import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
-import { sendText, resolveLidToPhone, setTyping } from './waha.js';
+import { sendText, resolveLidToPhone, setTyping, downloadMediaFromUrl } from './waha.js';
+import { transcribeAudio } from './transcribe.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {
@@ -60,10 +61,10 @@ REGRAS DURAS:
 }
 
 // Etapa 1: chamada do webhook assim que chega inbound.
-// Resolve LID, cria/atualiza lead, persiste a mensagem no banco.
+// Resolve LID, transcreve audio (se houver), cria/atualiza lead, persiste no banco.
 // Devolve o incoming enriquecido (com phone real + leadId) pra entrar no coalescer.
 export async function persistIncoming(incoming) {
-  let { phone, pushName, body, evolutionMessageId, mediaType } = incoming;
+  let { phone, pushName, body, evolutionMessageId, mediaType, mediaUrl, mediaMimetype } = incoming;
   const { fromIsLid } = incoming;
 
   if (fromIsLid) {
@@ -76,7 +77,31 @@ export async function persistIncoming(incoming) {
     }
   }
 
-  log.info('Inbound recebido', { phone, pushName, body: body?.slice(0, 80) });
+  // Se for audio (PTT do WhatsApp = ogg/opus), tenta transcrever pra Groq Whisper
+  // antes de salvar. Se rolar, body persistido vira o texto — historico, coalescer
+  // e LLM passam a ver a fala como texto normal.
+  const looksAudio = mediaType && /^audio\//i.test(mediaType);
+  let transcribed = false;
+  if (looksAudio && mediaUrl) {
+    try {
+      const media = await downloadMediaFromUrl(mediaUrl, mediaMimetype);
+      if (media?.buffer) {
+        const texto = await transcribeAudio(media.buffer, media.mimetype);
+        if (texto) {
+          body = texto;
+          transcribed = true;
+          log.info('Audio transcrito', { phone, chars: texto.length, preview: texto.slice(0, 80) });
+        }
+      }
+    } catch (err) {
+      log.warn('Falha transcrevendo audio', { phone, err: err.message });
+      body = body || '[audio - falha na transcricao]';
+    }
+  } else if (looksAudio && !mediaUrl) {
+    log.warn('Audio recebido sem mediaUrl no payload — verificar config STORE_MEDIA do WAHA', { phone });
+  }
+
+  log.info('Inbound recebido', { phone, pushName, mediaType, transcribed, body: body?.slice(0, 80) });
 
   const lead = await findOrCreateLeadByPhone(phone, { name: pushName || phone });
   await saveMessage({
@@ -85,7 +110,7 @@ export async function persistIncoming(incoming) {
     body,
     leadId: lead.id,
     evolutionMessageId,
-    meta: { pushName, mediaType },
+    meta: { pushName, mediaType, transcribed },
   });
   // Toca last_whatsapp_at sem mexer no status — status valido so vira 'respondido'
   // apos processBatch enviar resposta. (CHECK constraint: pendente|enviado|respondido|opt_out)

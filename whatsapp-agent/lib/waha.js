@@ -193,9 +193,13 @@ export function parseIncomingMessage(payload) {
 
   let body = data.body || data.message?.conversation || data.message?.extendedTextMessage?.text || '';
   let mediaType = null;
+  let mediaUrl = null;
+  let mediaMimetype = null;
 
   if (data.hasMedia || data.media) {
-    mediaType = data.mimetype || data.media?.mimetype || 'unknown';
+    mediaMimetype = data.mimetype || data.media?.mimetype || null;
+    mediaType = mediaMimetype || 'unknown';
+    mediaUrl = data.media?.url || data.mediaUrl || null;
     body = data.caption || body || '[midia]';
   } else if (data.message?.imageMessage) {
     mediaType = 'image';
@@ -215,8 +219,26 @@ export function parseIncomingMessage(payload) {
     pushName: data.notifyName || data._data?.notifyName || data.pushName || null,
     body,
     mediaType,
-    mediaUrl: null,
+    mediaUrl,
+    mediaMimetype,
     evolutionMessageId: data.id || data.key?.id,
     timestamp: ts ? new Date(Number(ts) * 1000) : new Date(),
   };
+}
+
+// Baixa media direto pelo URL retornado no webhook (precisa que WAHA tenha
+// armazenamento de media habilitado, default no devlikeapro/waha:noweb).
+// Retorna { buffer, mimetype } ou null.
+export async function downloadMediaFromUrl(url, mimetypeHint) {
+  if (!url) return null;
+  try {
+    const resp = await http.get(url, { responseType: 'arraybuffer', timeout: 20000 });
+    const buffer = Buffer.from(resp.data);
+    const mimetype = resp.headers?.['content-type'] || mimetypeHint || 'application/octet-stream';
+    log.debug('Media baixada', { url, bytes: buffer.length, mimetype });
+    return { buffer, mimetype };
+  } catch (err) {
+    log.warn('Falha baixando media', { url, err: err.message, status: err.response?.status });
+    return null;
+  }
 }
