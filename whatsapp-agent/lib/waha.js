@@ -101,6 +101,12 @@ export async function createInstance(webhookUrl) {
   const payload = {
     name: SESSION,
     config: {
+      // noweb.store ESSENCIAL pra resolver LID -> phone real.
+      // Sem isso TODOS endpoints /contacts/* + /lids/* retornam 400/404.
+      // full_sync popula o store com historico de contatos no pareamento.
+      noweb: {
+        store: { enabled: true, fullSync: true },
+      },
       webhooks: [
         {
           url: webhookUrl,
