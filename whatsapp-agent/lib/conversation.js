@@ -59,11 +59,13 @@ REGRAS DURAS:
 - Se nao souber algo (escola, comercio, transporte), assume com sinceridade: "nao tenho essa info de cabeça, te respondo isso ate amanha".`;
 }
 
-export async function handleIncomingMessage(incoming) {
+// Etapa 1: chamada do webhook assim que chega inbound.
+// Resolve LID, cria/atualiza lead, persiste a mensagem no banco.
+// Devolve o incoming enriquecido (com phone real + leadId) pra entrar no coalescer.
+export async function persistIncoming(incoming) {
   let { phone, pushName, body, evolutionMessageId, mediaType } = incoming;
   const { fromIsLid } = incoming;
 
-  // Se chegou como LID (formato Multi-Device do WhatsApp), resolve pro telefone real.
   if (fromIsLid) {
     const realPhone = await resolveLidToPhone(phone);
     if (realPhone) {
@@ -74,12 +76,9 @@ export async function handleIncomingMessage(incoming) {
     }
   }
 
-  log.info('Mensagem recebida', { phone, pushName, body: body?.slice(0, 80) });
+  log.info('Inbound recebido', { phone, pushName, body: body?.slice(0, 80) });
 
-  // 1. Lead (cria se nao existe)
   const lead = await findOrCreateLeadByPhone(phone, { name: pushName || phone });
-
-  // 2. Persiste a inbound
   await saveMessage({
     phone,
     direction: 'in',
@@ -88,34 +87,49 @@ export async function handleIncomingMessage(incoming) {
     evolutionMessageId,
     meta: { pushName, mediaType },
   });
-  await touchLead(lead.id, { whatsapp_status: 'respondido' });
+  await touchLead(lead.id, { whatsapp_status: 'recebido' });
 
-  const inboundLen = (body || '').length;
+  return { ...incoming, phone, leadId: lead.id };
+}
 
-  // 3. Mensagem que pede humano? curto-circuito
-  if (/humano|atendente|pessoa de verdade/i.test(body)) {
-    const resposta = 'Claro, em instantes o Charles te chama por aqui.';
-    return enviarResposta(phone, resposta, lead.id, { agent: true, escalate: true, inboundLen });
+// Etapa 2: chamada pelo coalescer apos o debounce expirar.
+// Recebe 1+ inbounds agrupados, monta resposta unica considerando o batch.
+export async function processBatch(batch) {
+  if (!batch || batch.length === 0) return null;
+
+  const last = batch[batch.length - 1];
+  const { phone, leadId } = last;
+
+  // Concatena bodies do batch em ordem cronologica pra raciocinar como "tudo que o lead disse agora".
+  const combinedBody = batch
+    .map((m) => (m.body || '').trim())
+    .filter(Boolean)
+    .join('\n');
+  const inboundLen = combinedBody.length;
+
+  log.info('Processando batch', { phone, msgs: batch.length, combinedLen: inboundLen });
+
+  // Curto-circuito: pedido de humano
+  if (/humano|atendente|pessoa de verdade/i.test(combinedBody)) {
+    await touchLead(leadId, { whatsapp_status: 'escalado' });
+    return enviarResposta(phone, 'Claro, em instantes o Charles te chama por aqui.', leadId, {
+      agent: true, escalate: true, inboundLen,
+    });
   }
 
-  // 4. Historico recente
-  const recent = await getRecentMessages(phone, 12);
+  // Historico ja contem as inbounds que persistIncoming salvou.
+  const recent = await getRecentMessages(phone, 16);
   const historyForLLM = recent.map((m) => ({
     role: m.direction === 'in' ? 'user' : 'assistant',
     content: m.body,
   }));
 
-  // 5. Chama Groq
   const system = await buildSystemPrompt();
-  const userMessages = [
-    { role: 'system', content: system },
-    ...historyForLLM,
-    // a ultima inbound ja entrou no historyForLLM acima, nao duplicar
-  ];
+  const messages = [{ role: 'system', content: system }, ...historyForLLM];
 
   let resposta;
   try {
-    resposta = await chat(userMessages, { temperature: 0.7, maxTokens: 500 });
+    resposta = await chat(messages, { temperature: 0.7, maxTokens: 500 });
   } catch (err) {
     log.error('Falha no Groq', { err: err.message });
     resposta = 'Anotei seu contato! O Charles te responde aqui em instantes.';
@@ -125,7 +139,8 @@ export async function handleIncomingMessage(incoming) {
     resposta = 'Anotei sua mensagem. O Charles te chama aqui em instantes.';
   }
 
-  return enviarResposta(phone, resposta, lead.id, { agent: true, inboundLen });
+  await touchLead(leadId, { whatsapp_status: 'respondido' });
+  return enviarResposta(phone, resposta, leadId, { agent: true, inboundLen });
 }
 
 function splitInChunks(body) {

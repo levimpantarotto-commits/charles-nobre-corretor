@@ -3,9 +3,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { handleIncomingMessage, enviarManual } from './lib/conversation.js';
+import { persistIncoming, processBatch, enviarManual } from './lib/conversation.js';
 import { parseIncomingMessage, createInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
 import { normalizePhone } from './lib/supabase.js';
+import { coalesceIncoming } from './lib/coalescer.js';
 import { log } from './lib/logger.js';
 
 dotenv.config();
@@ -84,10 +85,13 @@ app.post('/webhook/evolution', async (req, res) => {
   const parsed = parseIncomingMessage(payload);
   if (!parsed) return;
 
-  // Processa em background (nao bloqueia o webhook)
-  handleIncomingMessage(parsed).catch((err) => {
-    log.error('Falha processando mensagem', { phone: parsed.phone, err: err.message, stack: err.stack });
-  });
+  // 1. Persiste inbound imediato (resolve LID, salva no banco) — nao depende do debounce.
+  // 2. Empilha no coalescer; quando expirar o timer, processa batch agrupado.
+  persistIncoming(parsed)
+    .then((enriched) => coalesceIncoming(enriched.phone, enriched, processBatch))
+    .catch((err) => {
+      log.error('Falha processando inbound', { phone: parsed.phone, err: err.message, stack: err.stack });
+    });
 });
 
 // --- ENVIO MANUAL (pra dashboard /admin disparar mensagens) ---
