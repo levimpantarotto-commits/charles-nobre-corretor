@@ -13,7 +13,8 @@ export async function listarTodos() {
   return data || [];
 }
 
-// Resume o catalogo em ~10 linhas pra injetar no system prompt
+// Resume o catalogo pra injetar no system prompt.
+// Inclui o ID curto (8 chars) pra o LLM saber referenciar o link correto.
 export async function resumoCatalogo() {
   const imoveis = await listarTodos();
   if (imoveis.length === 0) return 'Catalogo vazio.';
@@ -21,7 +22,8 @@ export async function resumoCatalogo() {
     const preco = fmtBRL(p.price);
     const intent = p.intent === 'aluguel' ? 'Aluguel' : 'Venda';
     const area = p.area ? `${p.area}m²` : '';
-    return `- [${intent}] ${p.title} — ${preco}${area ? ` · ${area}` : ''} · ${p.neighborhood || p.city || ''}`;
+    const bairro = p.neighborhood || p.city || '';
+    return `- id=${p.id} · [${intent}] ${p.title} — ${preco}${area ? ` · ${area}` : ''} · ${bairro}`;
   });
   return linhas.join('\n');
 }

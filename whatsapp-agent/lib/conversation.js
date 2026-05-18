@@ -9,38 +9,54 @@ const CHARLES_DNA = {
   nome: process.env.CHARLES_NOME || 'Charles R. Nobre',
   creci: process.env.CHARLES_CRECI || '37177',
   whatsapp: process.env.CHARLES_WHATSAPP || '',
-  regiao: process.env.CHARLES_REGIAO || 'Imbituba, Garopaba e Imaruí (SC)',
-  tom: process.env.CHARLES_TOM || 'Profissional, direto, acolhedor. Trata o lead pelo nome.',
+  regiao: process.env.CHARLES_REGIAO || 'Imbituba, Garopaba e Imarui (SC)',
 };
 
 async function buildSystemPrompt() {
   const catalogo = await resumoCatalogo();
-  return `Voce e ${CHARLES_DNA.nome}, corretor de imoveis em ${CHARLES_DNA.regiao} (CRECI ${CHARLES_DNA.creci}).
-Voce esta respondendo um lead via WhatsApp.
+  return `Voce e ${CHARLES_DNA.nome}, corretor de imoveis no litoral sul de SC (Imbituba, Garopaba, Imarui). CRECI ${CHARLES_DNA.creci}. 12+ anos na regiao, conhece cada bairro, praia e empreendimento.
+Voce esta atendendo um lead via WhatsApp. A pessoa do outro lado pode estar comprando casa de R$ 400 mil ou de R$ 3 milhoes — trate todo lead com a mesma atencao tecnica.
 
-TOM E ESTILO:
-${CHARLES_DNA.tom}
-- Fale como humano no WhatsApp: mensagens curtas, naturais.
-- Quebre sua resposta em 2-3 mensagens curtas separadas por DUPLA QUEBRA DE LINHA (\\n\\n). NUNCA escreva tudo em um paragrafo unico.
-- Cada mensagem deve ter no maximo 1-2 frases.
-- Exemplos de bom estilo:
-  "Oi! Tudo bem?\\n\\nVc ta procurando pra alugar ou comprar?\\n\\nE em que bairro?"
-  "Boa! Imbituba tem otimas opcoes\\n\\nVc tem alguma faixa de preco em mente?"
-- Em portugues brasileiro coloquial. Pode usar abreviacoes ("vc", "ta", "tb").
-- Use o nome do lead se ele tiver dito.
-- Nunca invente imovel que nao esta no catalogo.
-- Se o lead perguntar sobre um imovel especifico, mande o link em mensagem separada: https://charlesrnobre.com.br/imovel/<id>.
-- Se nao souber, oferece marcar conversa por chamada/visita.
+PERSONALIDADE:
+- Caloroso mas profissional. Voce escuta antes de oferecer. Voce conduz, nao interroga.
+- Confia no proprio repertorio: cita bairro, distancia da praia, perfil do empreendimento sem hesitar.
+- Direto, sem floreio comercial. Nao usa "que otima escolha!", "perfeito!", "sensacional!".
+- Nao bajula. Confirma entendimento ("entendi, voce procura algo pra familia entao") em vez de elogiar.
+
+ESTILO DE ESCRITA NO WHATSAPP:
+- Portugues brasileiro escrito por adulto profissional. Escreva "voce" por extenso (NUNCA "vc"). "tambem" (nao "tb"). "esta" (nao "ta"). Pode usar contraçoes naturais como "pra" e "ta tudo bem".
+- Mensagens curtas — 1 a 2 frases por bolha, no maximo.
+- UMA PERGUNTA POR VEZ. Jamais empilhe duas perguntas seguidas. Espera a resposta antes de fazer a proxima.
+- Por padrao responda em 1 unica mensagem. Use 2 bolhas apenas quando ha mudanca de assunto real (ex: resposta + pergunta de qualificaçao seguinte) ou quando ha um link/preço pra destacar separado.
+- Quando quebrar em 2 mensagens, separe por DUPLA QUEBRA DE LINHA (\\n\\n).
+- Sem emoji.
+
+QUALIFICAÇAO (objetivo da conversa):
+Antes de mandar imovel, voce precisa saber, na ordem de prioridade:
+1. Intençao: comprar ou alugar (se temporada ou permanente)
+2. Perfil: pra morar, investir, veraneio
+3. Quem mora: solteiro, casal, familia (quantos quartos minimos)
+4. Faixa de preço aproximada
+5. Bairro/praia de preferencia (se nao souber, oferece sugestao da regiao)
+6. Urgencia (prazo)
+Faça uma pergunta de cada vez. Nao precisa cobrir tudo em uma conversa — siga o ritmo do lead.
+
+USO DO CATALOGO:
+- Cada imovel no catalogo abaixo tem o campo "id=XXXX". Para mandar o link de um imovel, use EXATAMENTE: https://charlesrnobre.com.br/imovel/ID (substitua ID pelo valor do campo id daquele imovel).
+- Exemplo correto: se o id no catalogo e "id=a3f9bc12-...", o link e https://charlesrnobre.com.br/imovel/a3f9bc12-...
+- JAMAIS escreva o link com placeholder tipo "<id>" ou "{id}" — substitua pelo valor real ou nao mande o link.
+- Use o titulo EXATO do imovel como esta no catalogo, sem encurtar ou parafrasear.
+- Nunca invente imovel, preço, area ou caracteristica que nao esta listado.
+- Se o lead pede algo que nao temos no catalogo, seja honesto: "no momento nao tenho exatamente isso, mas posso te avisar quando entrar" + pede contato/preferencia pra anotar.
 
 CATALOGO ATUAL:
 ${catalogo}
 
-OBJETIVO: qualificar o lead (entender o que ele procura: venda/aluguel, bairro, faixa de preco, urgencia) e mandar opcoes do catalogo que casem. Se nao houver imovel ideal, anote o interesse e prometa retorno.
-
 REGRAS DURAS:
-- Nao prometa preco abaixo do anunciado sem confirmar.
-- Nao agende visita sem confirmar disponibilidade do Charles primeiro.
-- Se o lead pedir pra falar com humano, responde: "Claro, em instantes o Charles te chama por aqui." e marca a conversa pra atencao manual.`;
+- Nao prometa preço abaixo do anunciado sem confirmar com o Charles.
+- Nao agende visita sem antes confirmar disponibilidade — diga "vou checar a agenda do Charles e te confirmo".
+- Se o lead pedir pra falar com humano/pessoa de verdade, responde: "Claro, em instantes o Charles te chama por aqui." (esse caso ja tem curto-circuito no codigo).
+- Se nao souber algo (escola, comercio, transporte), assume com sinceridade: "nao tenho essa info de cabeça, te respondo isso ate amanha".`;
 }
 
 export async function handleIncomingMessage(incoming) {
@@ -74,10 +90,12 @@ export async function handleIncomingMessage(incoming) {
   });
   await touchLead(lead.id, { whatsapp_status: 'respondido' });
 
+  const inboundLen = (body || '').length;
+
   // 3. Mensagem que pede humano? curto-circuito
   if (/humano|atendente|pessoa de verdade/i.test(body)) {
     const resposta = 'Claro, em instantes o Charles te chama por aqui.';
-    return enviarResposta(phone, resposta, lead.id, { agent: true, escalate: true });
+    return enviarResposta(phone, resposta, lead.id, { agent: true, escalate: true, inboundLen });
   }
 
   // 4. Historico recente
@@ -107,30 +125,48 @@ export async function handleIncomingMessage(incoming) {
     resposta = 'Anotei sua mensagem. O Charles te chama aqui em instantes.';
   }
 
-  return enviarResposta(phone, resposta, lead.id, { agent: true });
+  return enviarResposta(phone, resposta, lead.id, { agent: true, inboundLen });
 }
 
 function splitInChunks(body) {
   // Quebra por dupla quebra de linha (preferido) ou por sentenca grande.
   let chunks = body.split(/\n\s*\n+/).map((c) => c.trim()).filter(Boolean);
-  // Se veio em uma so e tem > 200 chars, tenta quebrar em frases.
-  if (chunks.length === 1 && chunks[0].length > 200) {
+  // Se veio em uma so e tem > 240 chars, tenta quebrar em frases.
+  if (chunks.length === 1 && chunks[0].length > 240) {
     chunks = chunks[0].split(/(?<=[.?!])\s+/).map((c) => c.trim()).filter(Boolean);
   }
   return chunks.length ? chunks : [body];
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function jitter(base, spread) { return base + Math.random() * spread; }
+
+// Tempo de "leitura" antes do Charles começar a digitar. Simula o lead ver "online"
+// e em seguida o "digitando". Proporcional ao tamanho da mensagem do lead.
+function tempoLeitura(inboundLen = 0) {
+  // ~50ms por char + base 1.2s, com teto em 4.5s
+  return Math.min(4500, 1200 + Math.max(0, inboundLen) * 50);
+}
+
+// Tempo "digitando" realista pra celular: ~12 char/seg (~85ms/char) + base.
+// Teto em 5s pra nao parar de digitar gigante (vira chato).
+function tempoDigitacao(chunkLen) {
+  return Math.min(5000, 900 + chunkLen * 85);
+}
 
 async function enviarResposta(phone, body, leadId, opts = {}) {
   const chunks = splitInChunks(body);
   const results = [];
 
+  // Tempo de "leitura" antes da primeira bolha (deixa o lead ver "online" -> "digitando").
+  if (!opts.skipReadDelay) {
+    await sleep(tempoLeitura(opts.inboundLen || 0));
+  }
+
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     try {
-      // Tempo de "digitando" proporcional ao tamanho: 30ms por char, min 800ms, max 3500ms.
-      const typingMs = Math.min(3500, Math.max(800, chunk.length * 30));
+      const typingMs = tempoDigitacao(chunk.length);
       await setTyping(phone, true);
       await sleep(typingMs);
       await setTyping(phone, false);
@@ -145,11 +181,11 @@ async function enviarResposta(phone, body, leadId, opts = {}) {
         agentResponse: !!opts.agent,
         meta: opts.escalate ? { escalate_to_human: true } : {},
       });
-      log.info('Resposta enviada', { phone, chunk: i + 1, of: chunks.length, len: chunk.length });
+      log.info('Resposta enviada', { phone, chunk: i + 1, of: chunks.length, len: chunk.length, typingMs });
       results.push({ sent: true, body: chunk });
 
-      // Pausa entre chunks (humano pensa antes da proxima msg).
-      if (i < chunks.length - 1) await sleep(400 + Math.random() * 400);
+      // Pausa entre bolhas — humano releia o que mandou + decide proxima. 1.4-2.6s.
+      if (i < chunks.length - 1) await sleep(jitter(1400, 1200));
     } catch (err) {
       log.error('Falha ao enviar chunk', { phone, chunk: i + 1, err: err.message });
       results.push({ sent: false, error: err.message });
@@ -158,9 +194,10 @@ async function enviarResposta(phone, body, leadId, opts = {}) {
   return results.length === 1 ? results[0] : { sent: true, chunks: results };
 }
 
-// Versao usada pelo broadcast / disparo manual
+// Versao usada pelo broadcast / disparo manual.
+// Pula o delay de "leitura" porque nao ha inbound — vai direto pro typing.
 export async function enviarManual(phone, body, leadId) {
-  return enviarResposta(phone, body, leadId, { agent: false });
+  return enviarResposta(phone, body, leadId, { agent: false, skipReadDelay: true });
 }
 
 export { linkImovel };
