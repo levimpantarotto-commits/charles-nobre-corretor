@@ -2,7 +2,7 @@
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel } from './catalogo.js';
 import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
-import { sendText } from './evolution.js';
+import { sendText } from './waha.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {

@@ -4,7 +4,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { handleIncomingMessage, enviarManual } from './lib/conversation.js';
-import { parseIncomingMessage, createInstance, getQrCode, getInstanceState, sendText } from './lib/evolution.js';
+import { parseIncomingMessage, createInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
 import { normalizePhone } from './lib/supabase.js';
 import { log } from './lib/logger.js';
 
