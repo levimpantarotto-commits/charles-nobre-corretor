@@ -1,6 +1,6 @@
 // Orquestrador da conversa: recebe mensagem do lead -> monta contexto -> chama Groq -> envia resposta.
 import { chat } from './groq.js';
-import { resumoCatalogo, linkImovel } from './catalogo.js';
+import { resumoCatalogo, linkImovel, imovelPorId, formatarImovelDestaque } from './catalogo.js';
 import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
 import { sendText, resolveLidToPhone, setTyping, downloadMediaFromUrl } from './waha.js';
 import { transcribeAudio } from './transcribe.js';
@@ -15,6 +15,15 @@ const CHARLES_DNA = {
 
 async function buildSystemPrompt() {
   const catalogo = await resumoCatalogo();
+
+  // Imovel do anuncio atual (Meta Ads). Quando setado, IA abre direto nele.
+  const promotedId = process.env.BROADCAST_PROMOTED_PROPERTY_ID || '';
+  let destaque = null;
+  if (promotedId) {
+    const p = await imovelPorId(promotedId.trim());
+    destaque = formatarImovelDestaque(p);
+  }
+
   return `Voce e ${CHARLES_DNA.nome}, corretor de imoveis no litoral sul de SC (Imbituba, Garopaba, Imarui). CRECI ${CHARLES_DNA.creci}. 12+ anos na regiao, conhece cada bairro, praia e empreendimento.
 Voce esta atendendo um lead via WhatsApp. A pessoa do outro lado pode estar comprando casa de R$ 400 mil ou de R$ 3 milhoes — trate todo lead com a mesma atencao tecnica.
 
@@ -32,15 +41,27 @@ ESTILO DE ESCRITA NO WHATSAPP:
 - Quando quebrar em 2 mensagens, separe por DUPLA QUEBRA DE LINHA (\\n\\n).
 - Sem emoji.
 
-QUALIFICAÇAO (objetivo da conversa):
-Antes de mandar imovel, voce precisa saber, na ordem de prioridade:
+${destaque ? `IMOVEL DO ANUNCIO ATUAL (CONTEXTO IMPORTANTE):
+Estes leads chegaram por um anuncio Meta Ads especifico deste imovel:
+${destaque}
+
+REGRA: este e o foco da conversa. Voce JA SABE que o lead se interessou por este imovel especifico em Imbituba. NAO pergunte bairro, regiao ou tipo (apto/casa) — ja esta resolvido. Confirme interesse, manda o link em mensagem separada, e qualifica em volta dele (financiamento, entrada, prazo, quantos quartos minimo). So oferece outro imovel se o lead recusar este explicitamente ou pedir outra coisa.
+
+` : ''}QUALIFICAÇAO (objetivo da conversa):
+${destaque ? `Como o lead veio do anuncio acima, foque em:
+1. Confirmar interesse no imovel
+2. Forma de pagamento (a vista, financiamento, FGTS)
+3. Tem entrada disponivel? quanto?
+4. Urgencia / prazo pra decidir
+5. Quem mora (familia, criancas) — so se ainda nao ficou claro
+Manda 1 pergunta de cada vez. Nao despeja varias perguntas.` : `Antes de mandar imovel, voce precisa saber, na ordem de prioridade:
 1. Intençao: comprar ou alugar (se temporada ou permanente)
 2. Perfil: pra morar, investir, veraneio
 3. Quem mora: solteiro, casal, familia (quantos quartos minimos)
 4. Faixa de preço aproximada
 5. Bairro/praia de preferencia (se nao souber, oferece sugestao da regiao)
 6. Urgencia (prazo)
-Faça uma pergunta de cada vez. Nao precisa cobrir tudo em uma conversa — siga o ritmo do lead.
+Faça uma pergunta de cada vez. Nao precisa cobrir tudo em uma conversa — siga o ritmo do lead.`}
 
 USO DO CATALOGO:
 - Cada imovel no catalogo abaixo tem o campo "id=XXXX". Para mandar o link de um imovel, use EXATAMENTE: https://charlesrnobre.com.br/imovel/ID (substitua ID pelo valor do campo id daquele imovel).

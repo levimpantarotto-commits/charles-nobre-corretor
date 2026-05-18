@@ -42,3 +42,25 @@ export async function buscar(query) {
 export function linkImovel(id) {
   return `https://charlesrnobre.com.br/imovel/${id}`;
 }
+
+// Busca 1 imovel pelo UUID. Usado pra destacar imovel do anuncio Meta Ads atual.
+export async function imovelPorId(id) {
+  if (!id) return null;
+  const { data, error } = await supabase
+    .from('properties')
+    .select('id, title, intent, price, city, neighborhood, type, area, features, description')
+    .eq('id', id)
+    .single();
+  if (error || !data) return null;
+  return data;
+}
+
+export function formatarImovelDestaque(p) {
+  if (!p) return null;
+  const preco = fmtBRL(p.price);
+  const intent = p.intent === 'aluguel' ? 'Aluguel' : 'Venda';
+  const area = p.area ? `${p.area}m²` : '';
+  const bairro = p.neighborhood || p.city || '';
+  const link = linkImovel(p.id);
+  return `id=${p.id} · ${p.title} · [${intent}] ${preco}${area ? ` · ${area}` : ''} · ${bairro}\nLink: ${link}`;
+}
