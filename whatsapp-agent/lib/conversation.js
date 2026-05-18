@@ -87,7 +87,9 @@ export async function persistIncoming(incoming) {
     evolutionMessageId,
     meta: { pushName, mediaType },
   });
-  await touchLead(lead.id, { whatsapp_status: 'recebido' });
+  // Toca last_whatsapp_at sem mexer no status — status valido so vira 'respondido'
+  // apos processBatch enviar resposta. (CHECK constraint: pendente|enviado|respondido|opt_out)
+  await touchLead(lead.id);
 
   return { ...incoming, phone, leadId: lead.id };
 }
@@ -109,9 +111,9 @@ export async function processBatch(batch) {
 
   log.info('Processando batch', { phone, msgs: batch.length, combinedLen: inboundLen });
 
-  // Curto-circuito: pedido de humano
+  // Curto-circuito: pedido de humano. Status fica 'respondido' (schema atual nao tem
+  // 'escalado'); a flag escalate_to_human ja vai na meta da message via opts.escalate.
   if (/humano|atendente|pessoa de verdade/i.test(combinedBody)) {
-    await touchLead(leadId, { whatsapp_status: 'escalado' });
     return enviarResposta(phone, 'Claro, em instantes o Charles te chama por aqui.', leadId, {
       agent: true, escalate: true, inboundLen,
     });
