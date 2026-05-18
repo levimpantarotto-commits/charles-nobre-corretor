@@ -226,19 +226,41 @@ export function parseIncomingMessage(payload) {
   };
 }
 
-// Baixa media direto pelo URL retornado no webhook (precisa que WAHA tenha
-// armazenamento de media habilitado, default no devlikeapro/waha:noweb).
-// Retorna { buffer, mimetype } ou null.
+// Baixa media direto pelo URL retornado no webhook.
+// WAHA noweb manda URL interna do proprio container (http://localhost:3000/...)
+// que nao funciona de fora — reescreve pra WAHA_API_URL configurado.
+function rewriteMediaUrl(url) {
+  if (!url || !BASE) return url;
+  try {
+    const u = new URL(url);
+    const internalHosts = ['localhost', '127.0.0.1', '0.0.0.0', 'host.docker.internal'];
+    if (internalHosts.includes(u.hostname)) {
+      const base = BASE.replace(/\/+$/, '');
+      const newUrl = `${base}${u.pathname}${u.search}`;
+      return newUrl;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 export async function downloadMediaFromUrl(url, mimetypeHint) {
   if (!url) return null;
+  const fetchUrl = rewriteMediaUrl(url);
   try {
-    const resp = await http.get(url, { responseType: 'arraybuffer', timeout: 20000 });
+    const resp = await http.get(fetchUrl, { responseType: 'arraybuffer', timeout: 20000 });
     const buffer = Buffer.from(resp.data);
     const mimetype = resp.headers?.['content-type'] || mimetypeHint || 'application/octet-stream';
-    log.debug('Media baixada', { url, bytes: buffer.length, mimetype });
+    log.debug('Media baixada', { fetchUrl, bytes: buffer.length, mimetype });
     return { buffer, mimetype };
   } catch (err) {
-    log.warn('Falha baixando media', { url, err: err.message, status: err.response?.status });
+    log.warn('Falha baixando media', {
+      originalUrl: url,
+      fetchUrl,
+      err: err.message,
+      status: err.response?.status,
+    });
     return null;
   }
 }
