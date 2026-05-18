@@ -29,27 +29,49 @@ Motor que conecta o WhatsApp do Charles com:
 
 Abrir o **SQL Editor** do Supabase do Charles e rodar `db/migration.sql`. Cria a tabela `whatsapp_messages`, adiciona campos em `leads` e a view `leads_with_last_message`.
 
-### 2. Evolution API no Coolify (5 minutos)
+### 2. Evolution API no Coolify (10 minutos)
 
-No painel Coolify, criar um novo serviço **Evolution API**:
+A Evolution v2 **exige Postgres**. O `DATABASE_ENABLED=false` da v1 nao existe mais — se rodar sem DB, da erro `Database provider invalid`.
 
-- **Template:** Docker Image `atendai/evolution-api:latest` (ou usar `+ Add Resource → Public Repository` apontando pra `https://github.com/EvolutionAPI/evolution-api` se preferir build)
-- **Porta interna:** `8080`
-- **Volume persistente:** `evolution-data` montado em `/evolution/instances` (pra session do baileys sobreviver redeploy)
-- **Env vars principais:**
-  ```
-  AUTHENTICATION_API_KEY=<gerar 32 bytes hex>
-  DEL_INSTANCE=false
-  PROVIDER_ENABLED=false
-  DATABASE_ENABLED=true
-  DATABASE_CONNECTION_URI=postgresql://...  (do proprio Postgres do Coolify ou Supabase)
-  DATABASE_CONNECTION_CLIENT_NAME=evolution
-  CACHE_REDIS_ENABLED=false                    (ok comecar sem)
-  WEBHOOK_GLOBAL_URL=                          (deixa vazio, vamos setar via API depois)
-  WEBHOOK_GLOBAL_ENABLED=false
-  ```
-- **Domínio:** `evolution.levimp.com.br` (ou similar — Coolify gera SSL automatico)
-- Depois do deploy, anotar a URL pública e a `AUTHENTICATION_API_KEY`.
+**2.1 Criar Postgres dedicado:**
+- + Add Resource → Databases → **PostgreSQL** (versao 16)
+- Nome: `evolution-db`
+- Deploy → anotar a **Internal Connection URL** (`postgres://postgres:SENHA@evolution-db:5432/postgres`)
+
+**2.2 Criar o servico Evolution:**
+- + Add Resource → **Docker Image** → `atendai/evolution-api:latest`
+- Porta interna: `8080`
+- Volume persistente: `evolution-data` montado em `/evolution/instances`
+- Dominio: `evolution.levimp.com.br` (SSL automatico)
+
+**2.3 Env vars do Evolution (cole tudo):**
+```
+AUTHENTICATION_API_KEY=<mesmo valor do EVOLUTION_API_KEY do .env.local>
+
+DATABASE_PROVIDER=postgresql
+DATABASE_CONNECTION_URI=postgres://postgres:SENHA@evolution-db:5432/postgres
+DATABASE_CONNECTION_CLIENT_NAME=evolution
+
+DATABASE_SAVE_DATA_INSTANCE=true
+DATABASE_SAVE_DATA_NEW_MESSAGE=true
+DATABASE_SAVE_MESSAGE_UPDATE=true
+DATABASE_SAVE_DATA_CONTACTS=true
+DATABASE_SAVE_DATA_CHATS=true
+
+CACHE_REDIS_ENABLED=false
+CACHE_LOCAL_ENABLED=true
+
+CONFIG_SESSION_PHONE_CLIENT=Charles Nobre
+CONFIG_SESSION_PHONE_NAME=Chrome
+
+DEL_INSTANCE=false
+LANGUAGE=pt-BR
+LOG_LEVEL=ERROR
+SERVER_TYPE=http
+SERVER_PORT=8080
+```
+
+**2.4 Deploy** → quando status estiver Running verde, anotar a URL publica.
 
 ### 3. Groq API key (1 minuto)
 

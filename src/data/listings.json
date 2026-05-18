@@ -3,7 +3,7 @@
     "id": "43e7360d-ba86-4db4-a141-9ca095e6a844",
     "title": "Apartamento Garden Residence - Centro",
     "description": "Sofisticação e conforto no coração de Imbituba. Localizado no Imbituba Garden Residence, este apartamento de alto padrão oferece uma vida urbana com requinte. Totalmente mobiliado com móveis planejados, ambientes integrados e uma sacada gourmet perfeita para receber. O condomínio é completo, com uma piscina de raia no terraço que proporciona uma vista panorâmica espetacular da Praia da Vila.",
-    "price": 927000,
+    "price": 899000,
     "city": "Imbituba",
     "neighborhood": "Centro",
     "state": "SC",
@@ -164,5 +164,28 @@
       "5 Quadras da Praia"
     ],
     "area": 220
+  },
+  {
+    "id": "6b8a8b1a-8c1d-4e9a-b2c3-d4e5f6a7b8c9",
+    "title": "Apartamento Imbituba Garden - Exclusive",
+    "description": "Mais espaço, mais comodidade e a localização que você sempre desejou. Bem-vindo ao Imbituba Garden, onde a exclusividade encontra o metro quadrado mais valorizado da cidade. Unidade com 105m², living ampliado e o diferencial de duas vagas de garagem privativas.",
+    "price": 1100000,
+    "city": "Imbituba",
+    "neighborhood": "Centro",
+    "state": "SC",
+    "type": "Apartamento",
+    "intent": "venda",
+    "category": "Alto Padrão",
+    "images": [],
+    "video": "/images/ap2/ap 2 garagens.mp4",
+    "features": [
+      "105m² Privativos",
+      "3 Dormitórios (1 Suíte)",
+      "2 Vagas de Garagem",
+      "Sacada com Churrasqueira",
+      "Living Ampliado",
+      "Centro"
+    ],
+    "area": 105
   }
 ]

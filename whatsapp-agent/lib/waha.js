@@ -33,16 +33,17 @@ function isLid(chatId) {
 // Resolve LID -> phone number real consultando o store do WAHA.
 // Requer noweb.store.enabled=true na sessao.
 export async function resolveLidToPhone(lid) {
-  const lidNum = String(lid || '').replace(/@.*$/, '');
-  if (!lidNum) return null;
+  if (!lid) return null;
+  const fullLid = lid.includes('@') ? lid : `${lid}@lid`;
+  const encodedLid = encodeURIComponent(fullLid);
   try {
-    const { data } = await http.get(`/api/${SESSION}/lids/${lidNum}`);
+    const { data } = await http.get(`/api/${SESSION}/lids/${encodedLid}`);
     // Resposta esperada: { lid: "...@lid", pn: "55XXX@c.us" } ou similar
     const pn = data?.pn || data?.phoneNumber || data?.phone;
     if (pn) return chatIdToPhone(pn);
     return null;
   } catch (err) {
-    log.warn('Falha resolvendo LID', { lid: lidNum, status: err.response?.status, err: err.message });
+    log.warn('Falha resolvendo LID', { lid: fullLid, status: err.response?.status, err: err.message });
     return null;
   }
 }
