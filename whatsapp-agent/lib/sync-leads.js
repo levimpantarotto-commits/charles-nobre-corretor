@@ -15,21 +15,34 @@ export async function syncLeadsFromSheets() {
   const erros = [];
 
   for (const row of rows) {
-    const nome = row.nome || row.name || '';
-    const telefone = normalizePhone(row.telefone || row.phone || row.celular || '');
+    // Aceita varios nomes de header — incluindo export do Meta Lead Ads (full_name, phone).
+    const nome = row.nome || row.name || row.full_name || row.fullname || row.cliente || '';
+    const telefone = normalizePhone(
+      row.telefone || row.phone || row.celular || row.whatsapp || row.numero || ''
+    );
     if (!telefone || !nome) {
       pulados++;
       continue;
+    }
+
+    // Monta nota com contexto da origem se for Meta Ads (tem campaign/ad).
+    let notes = row.observacao || row.observacoes || row.interesse || null;
+    if (!notes && (row.campaign_name || row.ad_name)) {
+      const partes = [];
+      if (row.campaign_name) partes.push(`campanha: ${row.campaign_name}`);
+      if (row.ad_name) partes.push(`anuncio: ${row.ad_name}`);
+      if (row.platform) partes.push(`plataforma: ${row.platform}`);
+      notes = `Lead Meta Ads — ${partes.join(' · ')}`;
     }
 
     const lead = {
       name: nome,
       phone: telefone,
       email: row.email || null,
-      source: 'sheets',
+      source: row.campaign_name ? 'meta_ads' : 'sheets',
       status: 'novo',
       whatsapp_status: 'pendente',
-      notes: row.observacao || row.observacoes || row.interesse || null,
+      notes,
     };
 
     const { data: existing } = await supabase
