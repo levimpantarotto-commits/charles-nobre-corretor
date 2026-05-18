@@ -4,7 +4,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { persistIncoming, processBatch, enviarManual } from './lib/conversation.js';
-import { parseIncomingMessage, createInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
+import { parseIncomingMessage, createInstance, deleteInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
 import { normalizePhone } from './lib/supabase.js';
 import { coalesceIncoming } from './lib/coalescer.js';
 import { log } from './lib/logger.js';
@@ -52,6 +52,18 @@ app.post('/setup/create-instance', requireToken, async (req, res) => {
     res.json({ ok: true, result, webhook: webhookUrl });
   } catch (err) {
     log.error('Falha criando instancia', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/setup/reset-instance', requireToken, async (req, res) => {
+  try {
+    await deleteInstance();
+    const webhookUrl = `${req.protocol}://${req.get('host')}/webhook/evolution?token=${WEBHOOK_TOKEN}`;
+    const result = await createInstance(webhookUrl);
+    res.json({ ok: true, reset: true, result, webhook: webhookUrl });
+  } catch (err) {
+    log.error('Falha resetando instancia', { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });

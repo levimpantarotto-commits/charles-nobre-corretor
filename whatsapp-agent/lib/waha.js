@@ -84,6 +84,22 @@ export async function createInstance(webhookUrl) {
   }
 }
 
+export async function deleteInstance() {
+  try {
+    try {
+      await http.post(`/api/sessions/${SESSION}/stop`);
+    } catch (e) {
+      log.debug('Erro ao parar sessao para delecao (normal)', { err: e.message });
+    }
+    const { data } = await http.delete(`/api/sessions/${SESSION}`);
+    log.info('Sessao WAHA deletada com sucesso', { session: SESSION });
+    return data;
+  } catch (err) {
+    log.error('Falha ao deletar sessao WAHA', { session: SESSION, err: err.message });
+    throw err;
+  }
+}
+
 export async function getQrCode() {
   const { data } = await http.get(`/api/${SESSION}/auth/qr`, {
     params: { format: 'raw' },
