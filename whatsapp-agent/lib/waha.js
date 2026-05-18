@@ -144,6 +144,17 @@ export async function sendText(phone, body, options = {}) {
   };
 }
 
+export async function setTyping(phone, on = true) {
+  try {
+    await http.post(`/api/${SESSION}/presence`, {
+      chatId: phoneToChatId(phone),
+      presence: on ? 'typing' : 'paused',
+    });
+  } catch (err) {
+    log.debug('Falha setTyping', { err: err.message });
+  }
+}
+
 export async function sendImage(phone, imageUrl, caption) {
   const payload = {
     session: SESSION,

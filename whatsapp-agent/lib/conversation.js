@@ -2,7 +2,7 @@
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel } from './catalogo.js';
 import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
-import { sendText, resolveLidToPhone } from './waha.js';
+import { sendText, resolveLidToPhone, setTyping } from './waha.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {
@@ -20,11 +20,16 @@ Voce esta respondendo um lead via WhatsApp.
 
 TOM E ESTILO:
 ${CHARLES_DNA.tom}
-- Respostas curtas e objetivas (max 3-4 frases por mensagem).
-- Em portugues brasileiro coloquial.
+- Fale como humano no WhatsApp: mensagens curtas, naturais.
+- Quebre sua resposta em 2-3 mensagens curtas separadas por DUPLA QUEBRA DE LINHA (\\n\\n). NUNCA escreva tudo em um paragrafo unico.
+- Cada mensagem deve ter no maximo 1-2 frases.
+- Exemplos de bom estilo:
+  "Oi! Tudo bem?\\n\\nVc ta procurando pra alugar ou comprar?\\n\\nE em que bairro?"
+  "Boa! Imbituba tem otimas opcoes\\n\\nVc tem alguma faixa de preco em mente?"
+- Em portugues brasileiro coloquial. Pode usar abreviacoes ("vc", "ta", "tb").
 - Use o nome do lead se ele tiver dito.
 - Nunca invente imovel que nao esta no catalogo.
-- Se o lead perguntar sobre um imovel especifico, mande o link: https://charlesrnobre.com.br/imovel/<id>.
+- Se o lead perguntar sobre um imovel especifico, mande o link em mensagem separada: https://charlesrnobre.com.br/imovel/<id>.
 - Se nao souber, oferece marcar conversa por chamada/visita.
 
 CATALOGO ATUAL:
@@ -105,24 +110,52 @@ export async function handleIncomingMessage(incoming) {
   return enviarResposta(phone, resposta, lead.id, { agent: true });
 }
 
-async function enviarResposta(phone, body, leadId, opts = {}) {
-  try {
-    const sent = await sendText(phone, body, { delay: 1500 });
-    await saveMessage({
-      phone,
-      direction: 'out',
-      body,
-      leadId,
-      evolutionMessageId: sent?.key?.id,
-      agentResponse: !!opts.agent,
-      meta: opts.escalate ? { escalate_to_human: true } : {},
-    });
-    log.info('Resposta enviada', { phone, len: body.length });
-    return { sent: true, body };
-  } catch (err) {
-    log.error('Falha ao enviar resposta', { phone, err: err.message });
-    return { sent: false, error: err.message };
+function splitInChunks(body) {
+  // Quebra por dupla quebra de linha (preferido) ou por sentenca grande.
+  let chunks = body.split(/\n\s*\n+/).map((c) => c.trim()).filter(Boolean);
+  // Se veio em uma so e tem > 200 chars, tenta quebrar em frases.
+  if (chunks.length === 1 && chunks[0].length > 200) {
+    chunks = chunks[0].split(/(?<=[.?!])\s+/).map((c) => c.trim()).filter(Boolean);
   }
+  return chunks.length ? chunks : [body];
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function enviarResposta(phone, body, leadId, opts = {}) {
+  const chunks = splitInChunks(body);
+  const results = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    try {
+      // Tempo de "digitando" proporcional ao tamanho: 30ms por char, min 800ms, max 3500ms.
+      const typingMs = Math.min(3500, Math.max(800, chunk.length * 30));
+      await setTyping(phone, true);
+      await sleep(typingMs);
+      await setTyping(phone, false);
+
+      const sent = await sendText(phone, chunk);
+      await saveMessage({
+        phone,
+        direction: 'out',
+        body: chunk,
+        leadId,
+        evolutionMessageId: sent?.key?.id,
+        agentResponse: !!opts.agent,
+        meta: opts.escalate ? { escalate_to_human: true } : {},
+      });
+      log.info('Resposta enviada', { phone, chunk: i + 1, of: chunks.length, len: chunk.length });
+      results.push({ sent: true, body: chunk });
+
+      // Pausa entre chunks (humano pensa antes da proxima msg).
+      if (i < chunks.length - 1) await sleep(400 + Math.random() * 400);
+    } catch (err) {
+      log.error('Falha ao enviar chunk', { phone, chunk: i + 1, err: err.message });
+      results.push({ sent: false, error: err.message });
+    }
+  }
+  return results.length === 1 ? results[0] : { sent: true, chunks: results };
 }
 
 // Versao usada pelo broadcast / disparo manual
