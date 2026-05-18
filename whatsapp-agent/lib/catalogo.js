@@ -40,7 +40,7 @@ export async function buscar(query) {
 }
 
 export function linkImovel(id) {
-  return `https://charlesrnobre.com.br/imovel/${id}`;
+  return `https://www.charlesrnobre.com.br/imoveis/${id}`;
 }
 
 // Busca 1 imovel pelo UUID. Usado pra destacar imovel do anuncio Meta Ads atual.

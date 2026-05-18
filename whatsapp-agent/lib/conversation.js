@@ -64,8 +64,8 @@ Manda 1 pergunta de cada vez. Nao despeja varias perguntas.` : `Antes de mandar 
 Faça uma pergunta de cada vez. Nao precisa cobrir tudo em uma conversa — siga o ritmo do lead.`}
 
 USO DO CATALOGO:
-- Cada imovel no catalogo abaixo tem o campo "id=XXXX". Para mandar o link de um imovel, use EXATAMENTE: https://charlesrnobre.com.br/imovel/ID (substitua ID pelo valor do campo id daquele imovel).
-- Exemplo correto: se o id no catalogo e "id=a3f9bc12-...", o link e https://charlesrnobre.com.br/imovel/a3f9bc12-...
+- Cada imovel no catalogo abaixo tem o campo "id=XXXX". Para mandar o link de um imovel, use EXATAMENTE: https://www.charlesrnobre.com.br/imoveis/ID (substitua ID pelo valor do campo id daquele imovel). Note: a URL e "imoveis" no plural, com "www." na frente.
+- Exemplo correto: se o id no catalogo e "id=a3f9bc12-...", o link e https://www.charlesrnobre.com.br/imoveis/a3f9bc12-...
 - JAMAIS escreva o link com placeholder tipo "<id>" ou "{id}" — substitua pelo valor real ou nao mande o link.
 - Use o titulo EXATO do imovel como esta no catalogo, sem encurtar ou parafrasear.
 - Nunca invente imovel, preço, area ou caracteristica que nao esta listado.
