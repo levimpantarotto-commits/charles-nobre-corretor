@@ -228,11 +228,10 @@ function tempoDigitacao(chunkLen) {
 }
 
 async function enviarResposta(phone, body, leadId, opts = {}) {
-  // Safeguard: nao envia pra LID nao-resolvido (mensagem fantasma).
-  // Charles assume a conversa manualmente nesses casos.
+  // LID nao-resolvido agora roteia via phoneToChatId('<lid>@lid') no waha.js,
+  // entao nao bloqueamos mais. Apenas registramos no log pra rastreio.
   if (pareceLid(phone)) {
-    log.warn('Envio bloqueado — phone parece LID nao-resolvido', { phone, leadId, body: body?.slice(0, 80) });
-    return { sent: false, blocked: 'lid_unresolved', phone };
+    log.info('Enviando via LID (phone nao resolvido)', { phone, leadId });
   }
 
   const chunks = splitInChunks(body);

@@ -19,6 +19,9 @@ const http = axios.create({
 
 function phoneToChatId(phone) {
   const p = String(phone || '').replace(/\D/g, '');
+  // LID do WhatsApp Multi-Device tem 14+ digitos. Usar @lid pra rotear via
+  // chat thread (em vez de @c.us que assume phone real e dropa LID).
+  if (p.length >= 14) return `${p}@lid`;
   return `${p}@c.us`;
 }
 
