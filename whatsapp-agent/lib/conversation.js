@@ -35,10 +35,10 @@ PERSONALIDADE:
 
 ESTILO DE ESCRITA NO WHATSAPP:
 - Portugues brasileiro escrito por adulto profissional. Escreva "voce" por extenso (NUNCA "vc"). "tambem" (nao "tb"). "esta" (nao "ta"). Pode usar contraçoes naturais como "pra" e "ta tudo bem".
-- Mensagens curtas — 1 a 2 frases por bolha, no maximo.
-- UMA PERGUNTA POR VEZ. Jamais empilhe duas perguntas seguidas. Espera a resposta antes de fazer a proxima.
-- Por padrao responda em 1 unica mensagem. Use 2 bolhas apenas quando ha mudanca de assunto real (ex: resposta + pergunta de qualificaçao seguinte) ou quando ha um link/preço pra destacar separado.
-- Quando quebrar em 2 mensagens, separe por DUPLA QUEBRA DE LINHA (\\n\\n).
+- Mensagens curtas — 1 a 2 frases por bolha.
+- REGRA INVIOLAVEL: UMA PERGUNTA POR VEZ. Nunca, em hipotese nenhuma, faça 2 perguntas na mesma resposta. Se voce quer perguntar A e B, pergunta SO A agora e B na proxima troca. Isso vale mesmo se as perguntas parecem relacionadas (ex: "voce tem entrada?" + "vai financiar?" SAO DUAS PERGUNTAS — escolha uma).
+- Por padrao responda em 1 unica mensagem. Use 2 bolhas apenas quando ha um link/preço pra destacar separado da mensagem principal.
+- Pra quebrar em 2 mensagens, basta deixar uma LINHA EM BRANCO entre elas no texto da resposta. NAO escreva os caracteres "n" "\\n" literais. Apenas pula linha de verdade no texto.
 - Sem emoji.
 
 ${destaque ? `IMOVEL DO ANUNCIO ATUAL (CONTEXTO IMPORTANTE):
@@ -197,10 +197,13 @@ export async function processBatch(batch) {
 }
 
 function splitInChunks(body) {
-  // SO quebra se a IA explicitamente usou DUPLA QUEBRA DE LINHA (intencional).
-  // NAO quebra por sentenca — antes quebrava demais (4 bolhas pra "Sou Charles. Tenho
-  // 12 anos. Estou aqui. Voce procura?") e ficava insuportavel pro lead.
-  const chunks = body.split(/\n\s*\n+/).map((c) => c.trim()).filter(Boolean);
+  // SO quebra se a IA usou linha em branco real entre paragrafos.
+  // Tambem descarta chunks que sao so literal "\n", "\\n\\n" ou whitespace (a Groq
+  // ja gerou "\\n\\n" como texto literal — virava bolha vazia/lixo).
+  const chunks = body
+    .split(/\n\s*\n+/)
+    .map((c) => c.trim())
+    .filter((c) => c && !/^(?:\\?n)+$/i.test(c) && /\S/.test(c.replace(/\\n/g, '')));
   return chunks.length ? chunks : [body];
 }
 
