@@ -78,8 +78,8 @@ app.post('/webhook/evolution', async (req, res) => {
   const event = payload?.event;
   log.debug('Webhook recebido', { event });
 
-  // Tratamos so 'messages.upsert' (nova msg recebida)
-  if (event !== 'messages.upsert') return;
+  // WAHA: 'message' | 'message.any'  |  Evolution legacy: 'messages.upsert'
+  if (event !== 'message' && event !== 'message.any' && event !== 'messages.upsert') return;
 
   const parsed = parseIncomingMessage(payload);
   if (!parsed) return;
