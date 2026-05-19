@@ -222,6 +222,15 @@ export async function processBatch(batch) {
 
   log.info('Processando batch', { phone, msgs: batch.length, combinedLen: inboundLen });
 
+  // OPT_OUT: lead foi marcado pra IA NAO responder (proprietario, em conversa
+  // com Charles humano, incidente). Curto-circuito antes de qualquer custo.
+  const { data: leadCheck } = await supabase
+    .from('leads').select('whatsapp_status').eq('id', leadId).single();
+  if (leadCheck?.whatsapp_status === 'opt_out') {
+    log.info('Lead em opt_out — IA nao responde', { phone, leadId });
+    return { sent: false, skipped: true, reason: 'opt_out' };
+  }
+
   // PAUSA: se Charles assumiu manual recentemente, NAO chama IA. Lead recebe
   // resposta humana do Charles via celular, nao precisa do agente concorrer.
   const pause = await getPauseState(leadId);
@@ -430,6 +439,17 @@ async function enviarResposta(phone, body, leadId, opts = {}) {
 // (enviarResposta direto via processBatch) NAO passa por esse guard pra nao
 // engasgar conversa ativa.
 export async function enviarManual(phone, body, leadId, opts = {}) {
+  // OPT_OUT: NUNCA mandar manual/broadcast pra lead que pediu pra sair OU
+  // que foi marcado como tal (proprietario, em conversa humana, incidente).
+  if (leadId) {
+    const { data: leadCheck } = await supabase
+      .from('leads').select('whatsapp_status').eq('id', leadId).single();
+    if (leadCheck?.whatsapp_status === 'opt_out') {
+      log.warn('Envio manual bloqueado por opt_out', { phone, leadId });
+      return { skipped: true, reason: 'opt_out' };
+    }
+  }
+
   const cooldownH = parseFloat(process.env.BROADCAST_COOLDOWN_H || '12');
   if (!opts.skipCooldown && cooldownH > 0) {
     const cutoff = new Date(Date.now() - cooldownH * 3600_000).toISOString();

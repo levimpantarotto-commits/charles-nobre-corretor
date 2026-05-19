@@ -197,6 +197,59 @@ export async function getInstanceState() {
   }
 }
 
+// --- Validacao de numero ---
+
+// Confere se o phone existe no WhatsApp ANTES de mandar.
+// WAHA: GET /api/contacts/check-exists?phone=PHONE&session=SESSION
+// Resposta: { numberExists: bool, chatId: "55...@c.us" }
+// Returns: { exists: bool, chatId: string|null, phone: string }
+export async function checkNumberExists(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return { exists: false, chatId: null, phone: digits };
+  try {
+    const { data } = await http.get('/api/contacts/check-exists', {
+      params: { phone: digits, session: SESSION },
+    });
+    return {
+      exists: !!data?.numberExists,
+      chatId: data?.chatId || null,
+      phone: digits,
+    };
+  } catch (err) {
+    log.warn('check-exists falhou', { phone: digits, err: err.message, status: err.response?.status });
+    // Em caso de erro do WAHA, assume que existe (melhor mandar que perder lead real)
+    return { exists: true, chatId: null, phone: digits, error: err.message };
+  }
+}
+
+// Tenta variantes de phone BR pra cobrir o "9 extra" do celular novo vs antigo.
+// Phone com 13 digitos (55+DDD+9+8d) -> tenta sem o 9 (12 digitos).
+// Phone com 12 digitos -> tenta com o 9 inserido.
+// Retorna o phone que existe, ou null se nenhum bate.
+export async function resolveBrPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return { phone: null, exists: false };
+
+  // Tenta original primeiro
+  const r1 = await checkNumberExists(digits);
+  if (r1.exists) return { phone: digits, exists: true, source: 'original' };
+
+  // Variantes BR: 55 + DDD (2) + [9] + 8 digitos = 13 com 9, 12 sem
+  if (digits.startsWith('55') && digits.length === 13 && digits[4] === '9') {
+    // Tira o 9: 5548999340790 -> 554899340790
+    const semNove = digits.slice(0, 4) + digits.slice(5);
+    const r2 = await checkNumberExists(semNove);
+    if (r2.exists) return { phone: semNove, exists: true, source: 'sem_9' };
+  } else if (digits.startsWith('55') && digits.length === 12) {
+    // Insere 9: 554899340790 -> 5548999340790
+    const comNove = digits.slice(0, 4) + '9' + digits.slice(4);
+    const r2 = await checkNumberExists(comNove);
+    if (r2.exists) return { phone: comNove, exists: true, source: 'com_9' };
+  }
+
+  return { phone: digits, exists: false, source: null };
+}
+
 // --- Envio ---
 
 export async function sendText(phone, body, options = {}) {

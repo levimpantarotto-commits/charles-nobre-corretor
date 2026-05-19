@@ -327,13 +327,18 @@ app.get('/admin/nao-respondidos', requireToken, async (req, res) => {
   }
 });
 
-// --- FOLLOW-UP COLD LEAD (preview pra aprovacao) ---
-// GET /admin/followup-preview?diasMin=7&diasMax=14
-// Lista leads que receberam broadcast nessa janela e nunca responderam.
-async function listarColdLeads(diasMin = 7, diasMax = 14) {
+// --- FOLLOW-UP (preview pra aprovacao MANUAL — 2 cadencias: warm e cold) ---
+//
+// WARM: leads que receberam broadcast ha 24-48h e nao responderam. Aborda
+//       "ainda quente" — IA fala "viu minha msg ontem? alguma duvida?".
+// COLD: leads que receberam ha 7-14 dias. Aborda "novidade" — "surgiram
+//       opcoes novas pro seu perfil, posso enviar?".
+//
+// Janela em HORAS pra flexibilidade. Defaults: WARM 24-48, COLD 168-336.
+async function listarLeadsSemResposta(horasMin, horasMax) {
   const agora = Date.now();
-  const inicio = new Date(agora - diasMax * 86_400_000).toISOString();
-  const fim = new Date(agora - diasMin * 86_400_000).toISOString();
+  const inicio = new Date(agora - horasMax * 3600_000).toISOString();
+  const fim = new Date(agora - horasMin * 3600_000).toISOString();
   const { data, error } = await supabase
     .from('leads_with_last_message')
     .select('id, name, phone, whatsapp_status, last_whatsapp_at, last_message_direction, message_count, notes')
@@ -351,12 +356,37 @@ async function listarColdLeads(diasMin = 7, diasMax = 14) {
   }));
 }
 
+// Wrappers legados — mantem compat com endpoints anteriores
+async function listarColdLeads(diasMin = 7, diasMax = 14) {
+  return listarLeadsSemResposta(diasMin * 24, diasMax * 24);
+}
+async function listarWarmLeads(horasMin = 24, horasMax = 48) {
+  return listarLeadsSemResposta(horasMin, horasMax);
+}
+
+// GET /admin/followup-preview?cadencia=warm|cold  (ou horasMin/horasMax)
 app.get('/admin/followup-preview', requireToken, async (req, res) => {
   try {
-    const diasMin = Math.max(1, parseInt(req.query.diasMin, 10) || 7);
-    const diasMax = Math.max(diasMin + 1, parseInt(req.query.diasMax, 10) || 14);
-    const leads = await listarColdLeads(diasMin, diasMax);
-    res.json({ ok: true, diasMin, diasMax, count: leads.length, leads });
+    const cad = (req.query.cadencia || '').toLowerCase();
+    let horasMin, horasMax;
+    if (cad === 'warm') {
+      horasMin = parseInt(process.env.FOLLOWUP_WARM_H_MIN, 10) || 24;
+      horasMax = parseInt(process.env.FOLLOWUP_WARM_H_MAX, 10) || 48;
+    } else if (cad === 'cold' || cad === '') {
+      const dMin = parseInt(req.query.diasMin, 10) || parseInt(process.env.FOLLOWUP_DIAS_MIN, 10) || 7;
+      const dMax = parseInt(req.query.diasMax, 10) || parseInt(process.env.FOLLOWUP_DIAS_MAX, 10) || 14;
+      horasMin = dMin * 24;
+      horasMax = dMax * 24;
+    } else {
+      // override manual em horas
+      horasMin = parseInt(req.query.horasMin, 10);
+      horasMax = parseInt(req.query.horasMax, 10);
+    }
+    if (!horasMin || !horasMax || horasMax <= horasMin) {
+      return res.status(400).json({ error: 'horasMin/horasMax invalidos' });
+    }
+    const leads = await listarLeadsSemResposta(horasMin, horasMax);
+    res.json({ ok: true, cadencia: cad || 'cold', horasMin, horasMax, count: leads.length, leads });
   } catch (err) {
     log.error('Falha follow-up preview', { err: err.message });
     res.status(500).json({ error: err.message });
@@ -366,13 +396,18 @@ app.get('/admin/followup-preview', requireToken, async (req, res) => {
 // POST /admin/followup-disparar  body: { leadIds: [...], template?: string, dryRun?: bool }
 // Dispara mensagem de reativacao SO pros leadIds aprovados (vindos do preview).
 // Marca whatsapp_status='followup_enviado' depois. Respeita cooldown 12h.
-const DEFAULT_FOLLOWUP_TEMPLATE =
+const DEFAULT_FOLLOWUP_COLD_TEMPLATE =
   process.env.FOLLOWUP_TEMPLATE ||
   `Oi {nome}, aqui e o Charles. Surgiram novas opcoes alinhadas ao seu perfil em Imbituba/Garopaba. Posso te enviar pra voce dar uma olhada?`;
+const DEFAULT_FOLLOWUP_WARM_TEMPLATE =
+  process.env.FOLLOWUP_WARM_TEMPLATE ||
+  `Oi {nome}, voce viu minha mensagem ontem? Alguma duvida sobre o imovel?`;
 
 app.post('/admin/followup-disparar', requireToken, async (req, res) => {
   try {
-    const { leadIds = [], template = DEFAULT_FOLLOWUP_TEMPLATE, dryRun = false, delayMs } = req.body || {};
+    const { leadIds = [], cadencia = 'cold', dryRun = false, delayMs } = req.body || {};
+    const template = req.body?.template
+      || (cadencia === 'warm' ? DEFAULT_FOLLOWUP_WARM_TEMPLATE : DEFAULT_FOLLOWUP_COLD_TEMPLATE);
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
       return res.status(400).json({ error: 'leadIds: array nao vazio obrigatorio' });
     }
@@ -475,12 +510,14 @@ app.listen(PORT, () => {
     groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
   });
 
-  // Cron interno de follow-up cold lead. Roda 1x/dia (default), notifica
-  // Telegram com lista pra aprovacao MANUAL — nao dispara nada automaticamente
-  // (regra do Levi: cron prepara, humano aprova).
-  // Desativar setando FOLLOWUP_CRON_ENABLED=false.
+  // Crons internos de follow-up. Cada cron coleta candidatos da sua janela
+  // e notifica Telegram com lista pra aprovacao MANUAL (regra Levi: cron
+  // prepara, humano aprova). Nao dispara nada automatico.
+  // Desativar global: FOLLOWUP_CRON_ENABLED=false.
   if (process.env.FOLLOWUP_CRON_ENABLED !== 'false') {
     const intervalMs = parseInt(process.env.FOLLOWUP_CRON_INTERVAL_MS, 10) || 24 * 3600_000;
+
+    // Cron COLD (1x/dia default — leads parados 7-14 dias)
     setInterval(async () => {
       try {
         const leads = await listarColdLeads(
@@ -488,16 +525,36 @@ app.listen(PORT, () => {
           parseInt(process.env.FOLLOWUP_DIAS_MAX, 10) || 14,
         );
         if (leads.length > 0) {
-          await notifyFollowupAprovacao(leads);
-          log.info('Cron follow-up enviou preview pra aprovacao', { count: leads.length });
-        } else {
-          log.debug('Cron follow-up: nenhum lead na janela');
+          await notifyFollowupAprovacao(leads.map((l) => ({ ...l, cadencia: 'cold' })));
+          log.info('Cron follow-up COLD preview', { count: leads.length });
         }
       } catch (err) {
-        log.error('Cron follow-up falhou', { err: err.message });
-        notifyAdmin(`Cron follow-up falhou: ${err.message}`).catch(() => {});
+        log.error('Cron COLD falhou', { err: err.message });
+        notifyAdmin(`Cron follow-up COLD falhou: ${err.message}`).catch(() => {});
       }
     }, intervalMs);
-    log.info('Cron follow-up cold lead ativo', { intervalH: intervalMs / 3600_000 });
+
+    // Cron WARM (1x/dia default — leads parados 24-48h, ainda quentes)
+    const warmIntervalMs = parseInt(process.env.FOLLOWUP_WARM_CRON_INTERVAL_MS, 10) || intervalMs;
+    setInterval(async () => {
+      try {
+        const leads = await listarWarmLeads(
+          parseInt(process.env.FOLLOWUP_WARM_H_MIN, 10) || 24,
+          parseInt(process.env.FOLLOWUP_WARM_H_MAX, 10) || 48,
+        );
+        if (leads.length > 0) {
+          await notifyFollowupAprovacao(leads.map((l) => ({ ...l, cadencia: 'warm' })));
+          log.info('Cron follow-up WARM preview', { count: leads.length });
+        }
+      } catch (err) {
+        log.error('Cron WARM falhou', { err: err.message });
+        notifyAdmin(`Cron follow-up WARM falhou: ${err.message}`).catch(() => {});
+      }
+    }, warmIntervalMs);
+
+    log.info('Crons follow-up ativos', {
+      coldIntervalH: intervalMs / 3600_000,
+      warmIntervalH: warmIntervalMs / 3600_000,
+    });
   }
 });

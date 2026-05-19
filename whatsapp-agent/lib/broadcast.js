@@ -4,6 +4,7 @@
 import { supabase, normalizePhone } from './supabase.js';
 import { enviarManual } from './conversation.js';
 import { touchLead } from './supabase.js';
+import { resolveBrPhone } from './waha.js';
 import { log } from './logger.js';
 
 const DEFAULT_TEMPLATE =
@@ -98,22 +99,53 @@ export async function runBroadcast(options = {}) {
   let ok = 0;
   let fail = 0;
   let cooldownSkip = 0;
+  let phoneInvalido = 0;
   const erros = [];
+  const checkExists = options.checkExists !== false; // default true
 
   for (let i = 0; i < alvo.length; i++) {
     const l = alvo[i];
     const body = template.replace(/\{nome\}/g, primeiroNome(l.name));
     try {
-      const result = await enviarManual(l.phone, body, l.id);
+      // CHECK-EXISTS: confere se o phone existe no WhatsApp antes de mandar.
+      // Cobre o "9 extra" — se phone original nao existe, tenta variante.
+      // Se nenhuma variante existe, marca lead opt_out (phone_invalido) e
+      // pula. Evita gastar broadcast em numero morto.
+      let phoneFinal = l.phone;
+      if (checkExists) {
+        const r = await resolveBrPhone(l.phone);
+        if (!r.exists) {
+          phoneInvalido++;
+          log.warn(`Broadcast [${i + 1}/${alvo.length}] PHONE INVALIDO`, {
+            phone: l.phone, name: l.name,
+          });
+          await supabase.from('leads').update({
+            whatsapp_status: 'opt_out',
+            whatsapp_session: { opt_out_motivo: 'phone_invalido', opt_out_at: new Date().toISOString() },
+          }).eq('id', l.id);
+          if (i < alvo.length - 1) await new Promise((r) => setTimeout(r, delayMs));
+          continue;
+        }
+        if (r.phone !== l.phone) {
+          log.info(`Broadcast [${i + 1}/${alvo.length}] phone ajustado`, {
+            original: l.phone, ajustado: r.phone, source: r.source,
+          });
+          phoneFinal = r.phone;
+          // Atualiza lead pro phone correto pra proximos envios
+          await supabase.from('leads').update({ phone: r.phone }).eq('id', l.id);
+        }
+      }
+
+      const result = await enviarManual(phoneFinal, body, l.id);
       if (result?.skipped) {
         cooldownSkip++;
-        log.warn(`Broadcast [${i + 1}/${alvo.length}] SKIP cooldown`, {
-          phone: l.phone, name: l.name, reason: result.reason,
+        log.warn(`Broadcast [${i + 1}/${alvo.length}] SKIP ${result.reason}`, {
+          phone: phoneFinal, name: l.name,
         });
       } else {
         await touchLead(l.id, { whatsapp_status: 'enviado' });
         ok++;
-        log.info(`Broadcast [${i + 1}/${alvo.length}] enviado`, { phone: l.phone, name: l.name });
+        log.info(`Broadcast [${i + 1}/${alvo.length}] enviado`, { phone: phoneFinal, name: l.name });
       }
     } catch (err) {
       fail++;
@@ -123,5 +155,5 @@ export async function runBroadcast(options = {}) {
     if (i < alvo.length - 1) await new Promise((r) => setTimeout(r, delayMs));
   }
 
-  return { ok, fail, cooldownSkip, total: alvo.length, duplicadosDescartados: duplicados.length, erros };
+  return { ok, fail, cooldownSkip, phoneInvalido, total: alvo.length, duplicadosDescartados: duplicados.length, erros };
 }
