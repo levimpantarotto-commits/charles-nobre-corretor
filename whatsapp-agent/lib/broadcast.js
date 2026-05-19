@@ -1,7 +1,7 @@
 // Disparo de primeira mensagem (broadcast) pros leads pendentes.
 // Usa enviarManual (mesma pipeline do agente — typing, salva no banco)
 // e respeita delay anti-ban entre envios.
-import { supabase } from './supabase.js';
+import { supabase, normalizePhone } from './supabase.js';
 import { enviarManual } from './conversation.js';
 import { touchLead } from './supabase.js';
 import { log } from './logger.js';
@@ -39,11 +39,36 @@ export async function runBroadcast(options = {}) {
 
   const elegiveis = leadsRaw.filter((l) => naoEstaNoSkip(l, skipNames));
   const pulados = leadsRaw.length - elegiveis.length;
-  const alvo = limit > 0 ? elegiveis.slice(0, limit) : elegiveis;
+
+  // Dedup por phone normalizado — incidente Scheila 2026-05-19: 15 leads pendentes
+  // apontavam pro mesmo phone (formatos diferentes escaparam do dedup do sync),
+  // cada lead.id virou 1 envio. Aqui mata na raiz: 1 phone = 1 envio, sempre.
+  const porPhone = new Map();
+  const duplicados = [];
+  for (const l of elegiveis) {
+    const normalized = normalizePhone(l.phone);
+    if (!normalized) continue;
+    if (porPhone.has(normalized)) {
+      duplicados.push({ id: l.id, name: l.name, phone: l.phone, kept: porPhone.get(normalized).id });
+      continue;
+    }
+    porPhone.set(normalized, l);
+  }
+  const dedupados = [...porPhone.values()];
+  if (duplicados.length) {
+    log.warn('Broadcast dedup descartou leads com phone repetido', {
+      descartados: duplicados.length,
+      amostra: duplicados.slice(0, 5),
+    });
+  }
+
+  const alvo = limit > 0 ? dedupados.slice(0, limit) : dedupados;
 
   log.info('Broadcast preparado', {
     totalPendentes: leadsRaw.length,
     elegiveis: elegiveis.length,
+    dedupados: dedupados.length,
+    duplicados: duplicados.length,
     pulados,
     alvo: alvo.length,
     dryRun,
@@ -54,6 +79,8 @@ export async function runBroadcast(options = {}) {
       dryRun: true,
       totalPendentes: leadsRaw.length,
       elegiveis: elegiveis.length,
+      dedupados: dedupados.length,
+      duplicadosDescartados: duplicados,
       pulados,
       alvo: alvo.length,
       preview: alvo.slice(0, 10).map((l) => ({
@@ -70,16 +97,24 @@ export async function runBroadcast(options = {}) {
 
   let ok = 0;
   let fail = 0;
+  let cooldownSkip = 0;
   const erros = [];
 
   for (let i = 0; i < alvo.length; i++) {
     const l = alvo[i];
     const body = template.replace(/\{nome\}/g, primeiroNome(l.name));
     try {
-      await enviarManual(l.phone, body, l.id);
-      await touchLead(l.id, { whatsapp_status: 'enviado' });
-      ok++;
-      log.info(`Broadcast [${i + 1}/${alvo.length}] enviado`, { phone: l.phone, name: l.name });
+      const result = await enviarManual(l.phone, body, l.id);
+      if (result?.skipped) {
+        cooldownSkip++;
+        log.warn(`Broadcast [${i + 1}/${alvo.length}] SKIP cooldown`, {
+          phone: l.phone, name: l.name, reason: result.reason,
+        });
+      } else {
+        await touchLead(l.id, { whatsapp_status: 'enviado' });
+        ok++;
+        log.info(`Broadcast [${i + 1}/${alvo.length}] enviado`, { phone: l.phone, name: l.name });
+      }
     } catch (err) {
       fail++;
       erros.push({ phone: l.phone, name: l.name, err: err.message });
@@ -88,5 +123,5 @@ export async function runBroadcast(options = {}) {
     if (i < alvo.length - 1) await new Promise((r) => setTimeout(r, delayMs));
   }
 
-  return { ok, fail, total: alvo.length, erros };
+  return { ok, fail, cooldownSkip, total: alvo.length, duplicadosDescartados: duplicados.length, erros };
 }

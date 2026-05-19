@@ -1,7 +1,7 @@
 // Orquestrador da conversa: recebe mensagem do lead -> monta contexto -> chama Groq -> envia resposta.
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel, imovelPorId, formatarImovelDestaque } from './catalogo.js';
-import { getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
+import { supabase, getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
 import { sendText, resolveLidToPhone, setTyping, downloadMediaFromUrl } from './waha.js';
 import { transcribeAudio } from './transcribe.js';
 import { log } from './logger.js';
@@ -157,9 +157,15 @@ export async function persistIncoming(incoming) {
     evolutionMessageId,
     meta: { pushName, mediaType, transcribed },
   });
-  // Toca last_whatsapp_at sem mexer no status — status valido so vira 'respondido'
-  // apos processBatch enviar resposta. (CHECK constraint: pendente|enviado|respondido|opt_out)
-  await touchLead(lead.id);
+
+  // Marca 'respondido' assim que o lead da sinal de vida (independe de a IA
+  // conseguir responder). Sobe de pendente/enviado -> respondido; nao mexe em
+  // opt_out. Lead recem-criado ja vem com 'respondido' do findOrCreateLeadByPhone.
+  const patch = { last_whatsapp_at: new Date().toISOString() };
+  if (lead.whatsapp_status === 'pendente' || lead.whatsapp_status === 'enviado') {
+    patch.whatsapp_status = 'respondido';
+  }
+  await touchLead(lead.id, patch);
 
   return { ...incoming, phone, leadId: lead.id };
 }
@@ -211,7 +217,8 @@ export async function processBatch(batch) {
     resposta = 'Anotei sua mensagem. O Charles te chama aqui em instantes.';
   }
 
-  await touchLead(leadId, { whatsapp_status: 'respondido' });
+  // 'respondido' ja foi marcado no persistIncoming. Aqui so toca last_whatsapp_at
+  // implicitamente via saveMessage do outbound.
   return enviarResposta(phone, resposta, leadId, { agent: true, inboundLen });
 }
 
@@ -296,7 +303,32 @@ async function enviarResposta(phone, body, leadId, opts = {}) {
 
 // Versao usada pelo broadcast / disparo manual.
 // Pula o delay de "leitura" porque nao ha inbound — vai direto pro typing.
-export async function enviarManual(phone, body, leadId) {
+//
+// COOLDOWN POR PHONE (incidente Scheila 2026-05-19, 15x mesma msg):
+// antes de qualquer envio nao-conversacional, checa se ja saiu outbound pra
+// esse phone nas ultimas BROADCAST_COOLDOWN_H horas (default 12). Se saiu,
+// skipa silenciosamente — retorna { skipped:true, reason }. Resposta de IA
+// (enviarResposta direto via processBatch) NAO passa por esse guard pra nao
+// engasgar conversa ativa.
+export async function enviarManual(phone, body, leadId, opts = {}) {
+  const cooldownH = parseFloat(process.env.BROADCAST_COOLDOWN_H || '12');
+  if (!opts.skipCooldown && cooldownH > 0) {
+    const cutoff = new Date(Date.now() - cooldownH * 3600_000).toISOString();
+    const { data: recentOut } = await supabase
+      .from('whatsapp_messages')
+      .select('id, created_at')
+      .eq('phone', phone)
+      .eq('direction', 'out')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (recentOut && recentOut.length > 0) {
+      log.warn('Envio manual bloqueado por cooldown', {
+        phone, leadId, cooldownH, ultimoOut: recentOut[0].created_at,
+      });
+      return { skipped: true, reason: `cooldown ${cooldownH}h`, lastOut: recentOut[0].created_at };
+    }
+  }
   return enviarResposta(phone, body, leadId, { agent: false, skipReadDelay: true });
 }
 
