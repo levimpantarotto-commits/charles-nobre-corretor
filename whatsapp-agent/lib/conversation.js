@@ -5,6 +5,7 @@ import { supabase, getRecentMessages, findOrCreateLeadByPhone, saveMessage, touc
 import { sendText, resolveLidToPhone, setTyping, downloadMediaFromUrl } from './waha.js';
 import { transcribeAudio } from './transcribe.js';
 import { notifyNovoRespondedor, notifyLeadQualificou } from './telegram.js';
+import { writeQualificationToSheet } from './sheets.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {
@@ -235,14 +236,30 @@ export async function processBatch(batch) {
   }
 
   // Detecta qualificacao: se a IA disparou o gatilho de "vou repassar pro Charles",
-  // o lead bateu 5/6 pontos. Notifica Telegram com resumo extraido do historico.
+  // o lead bateu 5/6 pontos. Calcula score, persiste resumo na session, notifica
+  // Telegram e sincroniza de volta no Google Sheets (se configurado).
   if (indicaQualificacao(resposta)) {
     const historicoTexto = recent.map((m) => m.body).join(' ');
     const resumo = resumirPipeline(historicoTexto);
-    // Busca nome do lead pra montar card
-    supabase.from('leads').select('name').eq('id', leadId).single()
-      .then(({ data: l }) => notifyLeadQualificou({ name: l?.name, phone }, resumo))
-      .catch((e) => log.debug('Telegram qualificou falhou', { err: e.message }));
+    const score = calcularScore(resumo);
+    const qualificacao = { resumo, score, qualified_at: new Date().toISOString() };
+
+    // Persiste no banco (merge em whatsapp_session)
+    (async () => {
+      try {
+        const { data: cur } = await supabase
+          .from('leads').select('whatsapp_session, name').eq('id', leadId).single();
+        const session = { ...(cur?.whatsapp_session || {}), qualificacao };
+        await supabase.from('leads').update({ whatsapp_session: session }).eq('id', leadId);
+        await notifyLeadQualificou({ name: cur?.name, phone }, { ...resumo, score: `${score}/10` });
+        // Sheets sync bidirecional (dormente sem env)
+        writeQualificationToSheet(phone, resumo, score).catch((e) =>
+          log.debug('Sheets write qualificacao falhou', { err: e.message })
+        );
+      } catch (e) {
+        log.warn('Falha persistindo qualificacao', { err: e.message });
+      }
+    })();
   }
 
   // 'respondido' ja foi marcado no persistIncoming. Aqui so toca last_whatsapp_at
@@ -269,6 +286,25 @@ function resumirPipeline(historicoCombinado) {
   if (/urgent|logo|semana|mes que vem|agora|imediat/.test(txt)) out.prazo = 'curto';
   else if (/pensar|depois|ainda|ano que vem/.test(txt)) out.prazo = 'longo';
   return out;
+}
+
+// Score 0-10 do lead. Combina pontos preenchidos da pipeline + bonus de
+// pagamento (a vista > FGTS > financiamento) + bonus de prazo curto. Permite
+// ao Charles priorizar leads quentes na hora de assumir manual.
+function calcularScore(resumo) {
+  if (!resumo) return 0;
+  let score = 0;
+  // 1 ponto por campo da pipeline preenchido (cap 6)
+  const campos = ['intencao', 'perfil', 'quartos', 'pagamento', 'prazo'];
+  score += campos.filter((k) => resumo[k]).length;
+  // Bonus pagamento
+  if (resumo.pagamento === 'à vista') score += 2;
+  else if (resumo.pagamento === 'FGTS') score += 1;
+  // Bonus prazo curto
+  if (resumo.prazo === 'curto') score += 2;
+  // Penalidade prazo longo
+  if (resumo.prazo === 'longo') score -= 1;
+  return Math.max(0, Math.min(10, score));
 }
 
 // Detecta se a IA gerou o "filtro pronto" — fala-gatilho do prompt quando
