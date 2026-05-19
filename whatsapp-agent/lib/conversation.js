@@ -110,6 +110,12 @@ ${catalogo}`;
 // Etapa 1: chamada do webhook assim que chega inbound.
 // Resolve LID, transcreve audio (se houver), cria/atualiza lead, persiste no banco.
 // Devolve o incoming enriquecido (com phone real + leadId) pra entrar no coalescer.
+//
+// DEDUP DEFENSIVO: WAHA tem `retries: { attempts: 3 }` no webhook config —
+// se o handler demorar pra responder, pode retransmitir e cair duas vezes
+// aqui. Unique constraint em evolution_message_id ja pega quando o ID e
+// estavel, mas WAHA noweb as vezes manda IDs diferentes pra retry. Guard
+// adicional: ignora se mesmo (phone, body) chegou nos ultimos INBOUND_DEDUP_S.
 export async function persistIncoming(incoming) {
   let { phone, pushName, body, evolutionMessageId, mediaType, mediaUrl, mediaMimetype } = incoming;
   const { fromIsLid } = incoming;
@@ -149,6 +155,27 @@ export async function persistIncoming(incoming) {
   }
 
   log.info('Inbound recebido', { phone, pushName, mediaType, transcribed, body: body?.slice(0, 80) });
+
+  // Dedup defensivo: ignora inbound se identico chegou nos ultimos N segundos.
+  const dedupS = parseFloat(process.env.INBOUND_DEDUP_S || '5');
+  if (dedupS > 0 && body) {
+    const cutoff = new Date(Date.now() - dedupS * 1000).toISOString();
+    const { data: recente } = await supabase
+      .from('whatsapp_messages')
+      .select('id, created_at')
+      .eq('phone', phone)
+      .eq('direction', 'in')
+      .eq('body', body)
+      .gte('created_at', cutoff)
+      .limit(1);
+    if (recente && recente.length > 0) {
+      log.warn('Inbound duplicado ignorado (dedup defensivo)', {
+        phone, body: body.slice(0, 60), windowS: dedupS, original: recente[0].id,
+      });
+      // Retorna sem leadId pra sinalizar que nao deve entrar no coalescer.
+      return { ...incoming, phone, leadId: null, deduped: true };
+    }
+  }
 
   const lead = await findOrCreateLeadByPhone(phone, { name: pushName || phone });
   await saveMessage({

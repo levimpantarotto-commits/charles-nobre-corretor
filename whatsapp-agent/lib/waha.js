@@ -283,10 +283,34 @@ export function parseIncomingMessage(payload) {
   }
 
   const ts = data.timestamp || data.messageTimestamp;
+  // Tenta varios campos onde WAHA noweb / Evolution legacy podem por o nome.
+  // notifyName e o campo canonico do WAHA noweb, mas as vezes vem null se o
+  // lead nao esta nos contatos do dispositivo conectado. Loga debug-1-shot
+  // quando nao acha nada, pra calibrar pra outros payloads no futuro.
+  const pushName =
+    data.notifyName ||
+    data._data?.notifyName ||
+    data.pushName ||
+    data.chat?.name ||
+    data.contact?.name ||
+    data._chat?.name ||
+    data.senderName ||
+    null;
+
+  if (!pushName) {
+    if (!_loggedMissingName) {
+      _loggedMissingName = true;
+      log.warn('pushName ausente — payload bruto pra calibracao', {
+        keys: Object.keys(data),
+        sample: JSON.stringify(data).slice(0, 800),
+      });
+    }
+  }
+
   return {
     phone,
     fromIsLid,
-    pushName: data.notifyName || data._data?.notifyName || data.pushName || null,
+    pushName,
     body,
     mediaType,
     mediaUrl,
@@ -295,6 +319,9 @@ export function parseIncomingMessage(payload) {
     timestamp: ts ? new Date(Number(ts) * 1000) : new Date(),
   };
 }
+
+// flag pra logar payload SEM nome apenas 1x (calibracao, nao spam).
+let _loggedMissingName = false;
 
 // Variante que captura SO outbound (fromMe=true) — Charles digitando do celular.
 // Usado pelo handler de pausa: quando Charles assume manual, suspendemos a IA

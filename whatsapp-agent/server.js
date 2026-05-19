@@ -144,8 +144,12 @@ app.post('/webhook/evolution', async (req, res) => {
 
   // 1. Persiste inbound imediato (resolve LID, salva no banco) — nao depende do debounce.
   // 2. Empilha no coalescer; quando expirar o timer, processa batch agrupado.
+  //    Pula coalescer se persistIncoming detectou duplicata (deduped:true).
   persistIncoming(parsed)
-    .then((enriched) => coalesceIncoming(enriched.phone, enriched, processBatch))
+    .then((enriched) => {
+      if (enriched?.deduped) return; // duplicata ignorada
+      return coalesceIncoming(enriched.phone, enriched, processBatch);
+    })
     .catch((err) => {
       log.error('Falha processando inbound', { phone: parsed.phone, err: err.message, stack: err.stack });
     });
@@ -196,6 +200,99 @@ app.get('/admin/conversas', requireToken, async (req, res) => {
     res.json({ ok: true, sinceMin, count: enriched.length, msgs: enriched });
   } catch (err) {
     log.error('Falha listando conversas', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- LEADS DUPLICADOS (mesmo phone normalizado em rows diferentes) ---
+// GET /admin/leads-duplicados
+// Replica o PASSO 1 da migration_002 sem precisar SQL — listagem read-only.
+app.get('/admin/leads-duplicados', requireToken, async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('leads')
+      .select('id, name, phone, whatsapp_status, created_at')
+      .not('phone', 'is', null)
+      .order('created_at', { ascending: true })
+      .limit(5000);
+    if (error) throw error;
+
+    // Normaliza phone (so digitos) e agrupa
+    const grupos = new Map();
+    for (const l of data || []) {
+      const norm = (l.phone || '').replace(/\D/g, '');
+      if (!norm) continue;
+      if (!grupos.has(norm)) grupos.set(norm, []);
+      grupos.get(norm).push(l);
+    }
+    const dups = [];
+    for (const [phoneNorm, leads] of grupos.entries()) {
+      if (leads.length > 1) {
+        dups.push({
+          phone_normalizado: phoneNorm,
+          qtd: leads.length,
+          mantido: leads[0], // mais antigo (created_at asc)
+          duplicatas: leads.slice(1),
+        });
+      }
+    }
+    dups.sort((a, b) => b.qtd - a.qtd);
+
+    res.json({
+      ok: true,
+      total_leads: data?.length || 0,
+      total_grupos_com_dup: dups.length,
+      total_rows_extras: dups.reduce((acc, g) => acc + g.qtd - 1, 0),
+      grupos: dups,
+    });
+  } catch (err) {
+    log.error('Falha listando duplicados', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- LEAD INDIVIDUAL (triagem + opt_out manual) ---
+// GET /admin/lead/:id  -> dados do lead + ultimas N msgs
+app.get('/admin/lead/:id', requireToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: lead, error: e1 } = await supabase
+      .from('leads').select('*').eq('id', id).single();
+    if (e1) throw e1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 30, 200);
+    const { data: msgs } = await supabase
+      .from('whatsapp_messages')
+      .select('id, direction, body, agent_response, created_at, meta')
+      .eq('lead_id', id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    res.json({ ok: true, lead, messages: (msgs || []).reverse() });
+  } catch (err) {
+    log.error('Falha buscando lead', { err: err.message });
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// POST /admin/lead/:id/opt-out  -> marca whatsapp_status='opt_out' (IA nao
+// responde mais, broadcast/follow-up pulam). Idempotente.
+app.post('/admin/lead/:id/opt-out', requireToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const motivo = req.body?.motivo || 'manual';
+    const { data: cur } = await supabase
+      .from('leads').select('whatsapp_session').eq('id', id).single();
+    const session = { ...(cur?.whatsapp_session || {}), opt_out_motivo: motivo, opt_out_at: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('leads')
+      .update({ whatsapp_status: 'opt_out', whatsapp_session: session })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    log.info('Lead marcado opt_out', { id, motivo });
+    res.json({ ok: true, lead: data });
+  } catch (err) {
+    log.error('Falha opt-out', { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });
