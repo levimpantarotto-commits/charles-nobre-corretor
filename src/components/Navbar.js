@@ -30,8 +30,9 @@ export default function Navbar() {
         </Link>
         <div className="nav-links">
           <Link href="/">Início</Link>
-          <Link href="#properties">Imóveis</Link>
-          <Link href="#about">Sobre</Link>
+          <Link href="/#properties">Imóveis</Link>
+          <Link href="/blog">Blog</Link>
+          <Link href="/#about">Sobre</Link>
           <button onClick={() => openLeadModal()} className="btn-contact">Contato</button>
         </div>
       </div>

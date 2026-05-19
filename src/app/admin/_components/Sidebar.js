@@ -1,9 +1,10 @@
 'use client';
-import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles } from 'lucide-react';
+import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles, FileText } from 'lucide-react';
 
 const TABS = [
   { id: 'catalog', label: 'Catálogo', Icon: Building2 },
   { id: 'leads', label: 'Leads', Icon: Users },
+  { id: 'blog', label: 'Blog', Icon: FileText },
   { id: 'agenda', label: 'Agenda', Icon: Calendar },
   { id: 'approvals', label: 'Aprovações', Icon: CheckSquare },
   { id: 'agents', label: 'IA & Agentes', Icon: Sparkles },

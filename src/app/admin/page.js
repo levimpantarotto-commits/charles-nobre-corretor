@@ -12,6 +12,7 @@ import AgendaTab from './_components/AgendaTab';
 import ApprovalsTab from './_components/ApprovalsTab';
 import LogsTab from './_components/LogsTab';
 import AgentsTab from './_components/AgentsTab';
+import BlogTab from './_components/BlogTab';
 
 // ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
@@ -781,6 +782,7 @@ export default function AdminPage() {
           />
         )}
         {activeTab === 'leads' && <LeadsKanban />}
+        {activeTab === 'blog' && <BlogTab />}
         {activeTab === 'agenda' && <AgendaTab />}
         {activeTab === 'approvals' && <ApprovalsTab />}
         {activeTab === 'agents' && <AgentsTab />}
