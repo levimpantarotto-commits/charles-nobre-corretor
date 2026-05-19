@@ -4,12 +4,12 @@ import express from 'express';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { persistIncoming, processBatch, enviarManual } from './lib/conversation.js';
-import { parseIncomingMessage, createInstance, deleteInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
-import { normalizePhone } from './lib/supabase.js';
+import { parseIncomingMessage, parseOutgoingMessage, createInstance, deleteInstance, getQrCode, getInstanceState, sendText } from './lib/waha.js';
+import { supabase, normalizePhone, touchLead, setPauseUntil, findOrCreateLeadByPhone, saveMessage } from './lib/supabase.js';
 import { coalesceIncoming } from './lib/coalescer.js';
 import { syncLeadsFromSheets } from './lib/sync-leads.js';
 import { runBroadcast } from './lib/broadcast.js';
-import { supabase } from './lib/supabase.js';
+import { notifyFollowupAprovacao, notifyAdmin } from './lib/telegram.js';
 import { log } from './lib/logger.js';
 
 dotenv.config();
@@ -97,6 +97,48 @@ app.post('/webhook/evolution', async (req, res) => {
   // WAHA: 'message' | 'message.any'  |  Evolution legacy: 'messages.upsert'
   if (event !== 'message' && event !== 'message.any' && event !== 'messages.upsert') return;
 
+  // ANTES de tentar inbound: detecta fromMe (Charles assumiu manual do celular).
+  // Pausa IA pra esse lead por PAUSE_AFTER_HANDOFF_MIN (default 30). NAO pausa
+  // se a mensagem foi enviada pela propria IA (skip se ja existe no banco com
+  // agent_response=true — checado por evolutionMessageId pra evitar loop).
+  const outgoing = parseOutgoingMessage(payload);
+  if (outgoing) {
+    const pauseMin = parseInt(process.env.PAUSE_AFTER_HANDOFF_MIN, 10) || 30;
+    (async () => {
+      try {
+        // Filtra eco da propria IA: se essa msg ja foi gravada por nos, ignora.
+        if (outgoing.evolutionMessageId) {
+          const { data: ja } = await supabase
+            .from('whatsapp_messages')
+            .select('id, agent_response')
+            .eq('evolution_message_id', outgoing.evolutionMessageId)
+            .limit(1);
+          if (ja && ja.length > 0) {
+            log.debug('Outbound do webhook ja gravado (eco da IA)', { id: outgoing.evolutionMessageId });
+            return;
+          }
+        }
+        const lead = await findOrCreateLeadByPhone(outgoing.phone, { name: outgoing.phone });
+        await saveMessage({
+          phone: outgoing.phone,
+          direction: 'out',
+          body: outgoing.body || '[msg do Charles]',
+          leadId: lead.id,
+          evolutionMessageId: outgoing.evolutionMessageId,
+          agentResponse: false,
+          meta: { manual_handoff: true },
+        });
+        await setPauseUntil(lead.id, pauseMin);
+        log.info('Charles assumiu manual — IA pausada', {
+          phone: outgoing.phone, leadId: lead.id, minutos: pauseMin,
+        });
+      } catch (err) {
+        log.error('Falha tratando fromMe', { err: err.message, phone: outgoing.phone });
+      }
+    })();
+    return; // nao processa como inbound
+  }
+
   const parsed = parseIncomingMessage(payload);
   if (!parsed) return;
 
@@ -158,6 +200,127 @@ app.get('/admin/conversas', requireToken, async (req, res) => {
   }
 });
 
+// --- NAO-RESPONDIDOS (leads que receberam broadcast mas nao deram sinal de vida) ---
+// GET /admin/nao-respondidos?horas=48
+app.get('/admin/nao-respondidos', requireToken, async (req, res) => {
+  try {
+    const horas = Math.max(1, parseInt(req.query.horas, 10) || 48);
+    const cutoff = new Date(Date.now() - horas * 3600_000).toISOString();
+    const { data, error } = await supabase
+      .from('leads_with_last_message')
+      .select('id, name, phone, whatsapp_status, last_whatsapp_at, last_message_body, last_message_direction, last_message_at, message_count, notes')
+      .eq('whatsapp_status', 'enviado')
+      .lt('last_whatsapp_at', cutoff)
+      .order('last_whatsapp_at', { ascending: true })
+      .limit(500);
+    if (error) throw error;
+
+    // Enriquece com dias parados pra triagem rapida
+    const agora = Date.now();
+    const enriched = (data || []).map((l) => ({
+      ...l,
+      horas_parado: l.last_whatsapp_at
+        ? Math.floor((agora - new Date(l.last_whatsapp_at).getTime()) / 3600_000)
+        : null,
+    }));
+    res.json({ ok: true, horas, cutoff, count: enriched.length, leads: enriched });
+  } catch (err) {
+    log.error('Falha listando nao-respondidos', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- FOLLOW-UP COLD LEAD (preview pra aprovacao) ---
+// GET /admin/followup-preview?diasMin=7&diasMax=14
+// Lista leads que receberam broadcast nessa janela e nunca responderam.
+async function listarColdLeads(diasMin = 7, diasMax = 14) {
+  const agora = Date.now();
+  const inicio = new Date(agora - diasMax * 86_400_000).toISOString();
+  const fim = new Date(agora - diasMin * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from('leads_with_last_message')
+    .select('id, name, phone, whatsapp_status, last_whatsapp_at, last_message_direction, message_count, notes')
+    .eq('whatsapp_status', 'enviado')
+    .gte('last_whatsapp_at', inicio)
+    .lt('last_whatsapp_at', fim)
+    .order('last_whatsapp_at', { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return (data || []).map((l) => ({
+    ...l,
+    horas_parado: l.last_whatsapp_at
+      ? Math.floor((agora - new Date(l.last_whatsapp_at).getTime()) / 3600_000)
+      : null,
+  }));
+}
+
+app.get('/admin/followup-preview', requireToken, async (req, res) => {
+  try {
+    const diasMin = Math.max(1, parseInt(req.query.diasMin, 10) || 7);
+    const diasMax = Math.max(diasMin + 1, parseInt(req.query.diasMax, 10) || 14);
+    const leads = await listarColdLeads(diasMin, diasMax);
+    res.json({ ok: true, diasMin, diasMax, count: leads.length, leads });
+  } catch (err) {
+    log.error('Falha follow-up preview', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/followup-disparar  body: { leadIds: [...], template?: string, dryRun?: bool }
+// Dispara mensagem de reativacao SO pros leadIds aprovados (vindos do preview).
+// Marca whatsapp_status='followup_enviado' depois. Respeita cooldown 12h.
+const DEFAULT_FOLLOWUP_TEMPLATE =
+  process.env.FOLLOWUP_TEMPLATE ||
+  `Oi {nome}, aqui e o Charles. Surgiram novas opcoes alinhadas ao seu perfil em Imbituba/Garopaba. Posso te enviar pra voce dar uma olhada?`;
+
+app.post('/admin/followup-disparar', requireToken, async (req, res) => {
+  try {
+    const { leadIds = [], template = DEFAULT_FOLLOWUP_TEMPLATE, dryRun = false, delayMs } = req.body || {};
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ error: 'leadIds: array nao vazio obrigatorio' });
+    }
+    const { data: leads, error } = await supabase
+      .from('leads')
+      .select('id, name, phone, whatsapp_status')
+      .in('id', leadIds);
+    if (error) throw error;
+
+    if (dryRun) {
+      return res.json({
+        dryRun: true,
+        count: leads.length,
+        preview: leads.map((l) => ({
+          id: l.id, name: l.name, phone: l.phone,
+          msg: template.replace(/\{nome\}/g, (l.name || '').trim().split(/\s+/)[0] || 'tudo bem'),
+        })),
+      });
+    }
+
+    const espera = parseInt(delayMs, 10) || parseInt(process.env.BROADCAST_DELAY_MS, 10) || 4000;
+    let ok = 0, fail = 0, skip = 0;
+    const erros = [];
+    for (let i = 0; i < leads.length; i++) {
+      const l = leads[i];
+      const primeiroNome = (l.name || '').trim().split(/\s+/)[0] || 'tudo bem';
+      const body = template.replace(/\{nome\}/g, primeiroNome);
+      try {
+        const result = await enviarManual(l.phone, body, l.id);
+        if (result?.skipped) { skip++; continue; }
+        await touchLead(l.id, { whatsapp_status: 'enviado' }); // reseta janela pro cron nao re-pegar
+        ok++;
+      } catch (err) {
+        fail++;
+        erros.push({ id: l.id, phone: l.phone, err: err.message });
+      }
+      if (i < leads.length - 1) await new Promise((r) => setTimeout(r, espera));
+    }
+    res.json({ ok: true, total: leads.length, enviados: ok, falhas: fail, cooldownSkip: skip, erros });
+  } catch (err) {
+    log.error('Falha follow-up disparar', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- BROADCAST (manda mensagem pros leads pendentes) ---
 // Body opcional: { dryRun, limit, skipNames: [], template }
 app.post('/admin/broadcast', requireToken, async (req, res) => {
@@ -214,4 +377,30 @@ app.listen(PORT, () => {
     instance: process.env.EVOLUTION_INSTANCE_NAME,
     groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
   });
+
+  // Cron interno de follow-up cold lead. Roda 1x/dia (default), notifica
+  // Telegram com lista pra aprovacao MANUAL — nao dispara nada automaticamente
+  // (regra do Levi: cron prepara, humano aprova).
+  // Desativar setando FOLLOWUP_CRON_ENABLED=false.
+  if (process.env.FOLLOWUP_CRON_ENABLED !== 'false') {
+    const intervalMs = parseInt(process.env.FOLLOWUP_CRON_INTERVAL_MS, 10) || 24 * 3600_000;
+    setInterval(async () => {
+      try {
+        const leads = await listarColdLeads(
+          parseInt(process.env.FOLLOWUP_DIAS_MIN, 10) || 7,
+          parseInt(process.env.FOLLOWUP_DIAS_MAX, 10) || 14,
+        );
+        if (leads.length > 0) {
+          await notifyFollowupAprovacao(leads);
+          log.info('Cron follow-up enviou preview pra aprovacao', { count: leads.length });
+        } else {
+          log.debug('Cron follow-up: nenhum lead na janela');
+        }
+      } catch (err) {
+        log.error('Cron follow-up falhou', { err: err.message });
+        notifyAdmin(`Cron follow-up falhou: ${err.message}`).catch(() => {});
+      }
+    }, intervalMs);
+    log.info('Cron follow-up cold lead ativo', { intervalH: intervalMs / 3600_000 });
+  }
 });

@@ -296,6 +296,36 @@ export function parseIncomingMessage(payload) {
   };
 }
 
+// Variante que captura SO outbound (fromMe=true) — Charles digitando do celular.
+// Usado pelo handler de pausa: quando Charles assume manual, suspendemos a IA
+// pra esse lead por X minutos. Nao confundir com a IA enviando via sendText
+// (essa nao chega pelo webhook como nova msg, vai pelo OUR-OWN-MESSAGE event).
+export function parseOutgoingMessage(payload) {
+  let event = payload?.event;
+  let data;
+  if (event === 'message' || event === 'message.any') {
+    data = payload.payload || payload.data;
+  } else if (event === 'messages.upsert') {
+    data = payload?.data;
+  } else {
+    return null;
+  }
+  if (!data) return null;
+  const isFromMe = data.fromMe === true || data.key?.fromMe === true;
+  if (!isFromMe) return null;
+
+  // O destinatario fica em `to` ou em `key.remoteJid` (o "outro lado" do chat).
+  const to = data.to || data.key?.remoteJid;
+  const phone = chatIdToPhone(to);
+  if (!phone) return null;
+
+  const body =
+    data.body || data.message?.conversation || data.message?.extendedTextMessage?.text || '';
+  const id = data.id || data.key?.id || '';
+
+  return { phone, body, evolutionMessageId: id, fromIsLid: isLid(to) };
+}
+
 // Baixa media direto pelo URL retornado no webhook.
 // WAHA noweb manda URL interna do proprio container (http://localhost:3000/...)
 // que nao funciona de fora — reescreve pra WAHA_API_URL configurado.

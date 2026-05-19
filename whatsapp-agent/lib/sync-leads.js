@@ -3,6 +3,7 @@
 // endpoint POST /admin/sync-sheets no server.js — mesma logica, dois drivers.
 import { readLeadsSheet } from './sheets.js';
 import { supabase, normalizePhone } from './supabase.js';
+import { notifyNovosLeads } from './telegram.js';
 import { log } from './logger.js';
 
 export async function syncLeadsFromSheets() {
@@ -13,6 +14,7 @@ export async function syncLeadsFromSheets() {
   let atualizados = 0;
   let pulados = 0;
   const erros = [];
+  const novos = []; // {name, phone} pra notificar Telegram
 
   for (const row of rows) {
     // Aceita varios nomes de header — incluindo export do Meta Lead Ads (full_name, phone).
@@ -66,12 +68,21 @@ export async function syncLeadsFromSheets() {
       else erros.push({ telefone, op: 'update', err: error.message });
     } else {
       const { error } = await supabase.from('leads').insert(lead);
-      if (!error) inseridos++;
-      else erros.push({ telefone, op: 'insert', err: error.message });
+      if (!error) {
+        inseridos++;
+        novos.push({ name: nome, phone: telefone });
+      } else {
+        erros.push({ telefone, op: 'insert', err: error.message });
+      }
     }
   }
 
-  const result = { total: rows.length, inseridos, atualizados, pulados, erros };
-  log.info('Sync concluido', result);
+  // Notifica Telegram de novos leads (fire-and-forget — nao bloqueia retorno).
+  if (novos.length > 0) {
+    notifyNovosLeads(novos).catch((e) => log.debug('Telegram notify falhou', { err: e.message }));
+  }
+
+  const result = { total: rows.length, inseridos, atualizados, pulados, novos, erros };
+  log.info('Sync concluido', { ...result, novos: novos.length });
   return result;
 }

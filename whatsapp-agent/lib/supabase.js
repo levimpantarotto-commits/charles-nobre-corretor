@@ -94,6 +94,41 @@ export async function findOrCreateLeadByPhone(phone, defaults = {}) {
   return created;
 }
 
+// Pausa IA pra um lead por X minutos (usado quando Charles assume manual).
+// Marca em whatsapp_session.pause_until (ISO timestamp). Idempotente.
+export async function setPauseUntil(leadId, minutos = 30) {
+  if (!leadId) return null;
+  const pauseUntil = new Date(Date.now() + minutos * 60_000).toISOString();
+  // Lemos session atual e merge — Supabase JS nao tem `||` jsonb patch idiomatico.
+  const { data: cur } = await supabase
+    .from('leads')
+    .select('whatsapp_session')
+    .eq('id', leadId)
+    .single();
+  const session = { ...(cur?.whatsapp_session || {}), pause_until: pauseUntil };
+  const { error } = await supabase
+    .from('leads')
+    .update({ whatsapp_session: session, last_whatsapp_at: new Date().toISOString() })
+    .eq('id', leadId);
+  if (error) throw error;
+  return { pauseUntil };
+}
+
+// Verifica se um lead esta em pausa (Charles assumiu recentemente).
+// Devolve { paused: bool, until: iso|null }.
+export async function getPauseState(leadId) {
+  if (!leadId) return { paused: false, until: null };
+  const { data } = await supabase
+    .from('leads')
+    .select('whatsapp_session')
+    .eq('id', leadId)
+    .single();
+  const until = data?.whatsapp_session?.pause_until;
+  if (!until) return { paused: false, until: null };
+  const paused = new Date(until).getTime() > Date.now();
+  return { paused, until };
+}
+
 // Pega historico recente da conversa (ultimas N mensagens) pro contexto do LLM
 export async function getRecentMessages(phone, limit = 12) {
   const { data, error } = await supabase

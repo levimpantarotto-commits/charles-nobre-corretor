@@ -1,9 +1,10 @@
 // Orquestrador da conversa: recebe mensagem do lead -> monta contexto -> chama Groq -> envia resposta.
 import { chat } from './groq.js';
 import { resumoCatalogo, linkImovel, imovelPorId, formatarImovelDestaque } from './catalogo.js';
-import { supabase, getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead } from './supabase.js';
+import { supabase, getRecentMessages, findOrCreateLeadByPhone, saveMessage, touchLead, getPauseState } from './supabase.js';
 import { sendText, resolveLidToPhone, setTyping, downloadMediaFromUrl } from './waha.js';
 import { transcribeAudio } from './transcribe.js';
+import { notifyNovoRespondedor, notifyLeadQualificou } from './telegram.js';
 import { log } from './logger.js';
 
 const CHARLES_DNA = {
@@ -161,11 +162,17 @@ export async function persistIncoming(incoming) {
   // Marca 'respondido' assim que o lead da sinal de vida (independe de a IA
   // conseguir responder). Sobe de pendente/enviado -> respondido; nao mexe em
   // opt_out. Lead recem-criado ja vem com 'respondido' do findOrCreateLeadByPhone.
+  const eraPrimeiroInbound = lead.whatsapp_status === 'pendente' || lead.whatsapp_status === 'enviado';
   const patch = { last_whatsapp_at: new Date().toISOString() };
-  if (lead.whatsapp_status === 'pendente' || lead.whatsapp_status === 'enviado') {
-    patch.whatsapp_status = 'respondido';
-  }
+  if (eraPrimeiroInbound) patch.whatsapp_status = 'respondido';
   await touchLead(lead.id, patch);
+
+  // Notifica Charles via Telegram no PRIMEIRO inbound (transicao enviado/pendente -> respondido)
+  if (eraPrimeiroInbound) {
+    notifyNovoRespondedor({ name: lead.name, phone }, body).catch((e) =>
+      log.debug('Telegram notify falhou', { err: e.message })
+    );
+  }
 
   return { ...incoming, phone, leadId: lead.id };
 }
@@ -186,6 +193,16 @@ export async function processBatch(batch) {
   const inboundLen = combinedBody.length;
 
   log.info('Processando batch', { phone, msgs: batch.length, combinedLen: inboundLen });
+
+  // PAUSA: se Charles assumiu manual recentemente, NAO chama IA. Lead recebe
+  // resposta humana do Charles via celular, nao precisa do agente concorrer.
+  const pause = await getPauseState(leadId);
+  if (pause.paused) {
+    log.info('Lead em pausa (Charles assumiu manual) — IA nao responde', {
+      phone, leadId, until: pause.until,
+    });
+    return { sent: false, skipped: true, reason: 'paused', until: pause.until };
+  }
 
   // Curto-circuito: pedido de humano. Status fica 'respondido' (schema atual nao tem
   // 'escalado'); a flag escalate_to_human ja vai na meta da message via opts.escalate.
@@ -217,9 +234,48 @@ export async function processBatch(batch) {
     resposta = 'Anotei sua mensagem. O Charles te chama aqui em instantes.';
   }
 
+  // Detecta qualificacao: se a IA disparou o gatilho de "vou repassar pro Charles",
+  // o lead bateu 5/6 pontos. Notifica Telegram com resumo extraido do historico.
+  if (indicaQualificacao(resposta)) {
+    const historicoTexto = recent.map((m) => m.body).join(' ');
+    const resumo = resumirPipeline(historicoTexto);
+    // Busca nome do lead pra montar card
+    supabase.from('leads').select('name').eq('id', leadId).single()
+      .then(({ data: l }) => notifyLeadQualificou({ name: l?.name, phone }, resumo))
+      .catch((e) => log.debug('Telegram qualificou falhou', { err: e.message }));
+  }
+
   // 'respondido' ja foi marcado no persistIncoming. Aqui so toca last_whatsapp_at
   // implicitamente via saveMessage do outbound.
   return enviarResposta(phone, resposta, leadId, { agent: true, inboundLen });
+}
+
+// Heuristica leve: extrai resumo da pipeline a partir do historico bruto.
+// Nao tenta ser perfeito — so junta os sinais que ja apareceram pra dar ao
+// Charles um cartao de chegada na conversa.
+function resumirPipeline(historicoCombinado) {
+  const txt = (historicoCombinado || '').toLowerCase();
+  const out = {};
+  if (/\bcomprar?\b|\bcompra\b|\bfinanci/.test(txt)) out.intencao = 'comprar';
+  else if (/\balugar?\b|\baluguel\b|\blocac/.test(txt)) out.intencao = 'alugar';
+  if (/\bmorar?\b|\bresidir|\bfamilia\b|familia/.test(txt)) out.perfil = 'morar';
+  else if (/investir?|investiment/.test(txt)) out.perfil = 'investir';
+  else if (/veraneio|ferias|temporada/.test(txt)) out.perfil = 'veraneio';
+  const quartos = txt.match(/(\d+)\s*(?:quart|dorm|suite)/);
+  if (quartos) out.quartos = quartos[1];
+  if (/\ba\s*vista\b|à\s*vista/.test(txt)) out.pagamento = 'à vista';
+  else if (/financi/.test(txt)) out.pagamento = 'financiamento';
+  else if (/fgts/.test(txt)) out.pagamento = 'FGTS';
+  if (/urgent|logo|semana|mes que vem|agora|imediat/.test(txt)) out.prazo = 'curto';
+  else if (/pensar|depois|ainda|ano que vem/.test(txt)) out.prazo = 'longo';
+  return out;
+}
+
+// Detecta se a IA gerou o "filtro pronto" — fala-gatilho do prompt quando
+// 5/6 pontos da pipeline estao checados.
+function indicaQualificacao(resposta) {
+  const r = (resposta || '').toLowerCase();
+  return /repassar.*charles|vou repassar|chama por aqui em instantes pra dar/i.test(r);
 }
 
 function splitInChunks(body) {
