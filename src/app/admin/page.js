@@ -13,6 +13,11 @@ import ApprovalsTab from './_components/ApprovalsTab';
 import LogsTab from './_components/LogsTab';
 import AgentsTab from './_components/AgentsTab';
 import BlogTab from './_components/BlogTab';
+import BriefingTab from './_components/BriefingTab';
+import SkillsTab from './_components/SkillsTab';
+import TreinamentoTab from './_components/TreinamentoTab';
+import WhatsappTab from './_components/WhatsappTab';
+import TerminalTab from './_components/TerminalTab';
 
 // ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
@@ -787,6 +792,11 @@ export default function AdminPage() {
         {activeTab === 'approvals' && <ApprovalsTab />}
         {activeTab === 'agents' && <AgentsTab />}
         {activeTab === 'logs' && <LogsTab />}
+        {activeTab === 'briefing' && <BriefingTab />}
+        {activeTab === 'skills' && <SkillsTab />}
+        {activeTab === 'treinamento' && <TreinamentoTab />}
+        {activeTab === 'whatsapp' && <WhatsappTab />}
+        {activeTab === 'terminal' && <TerminalTab />}
         {activeTab === 'settings' && (
           <SettingsTab
             siteConfigs={siteConfigs}
