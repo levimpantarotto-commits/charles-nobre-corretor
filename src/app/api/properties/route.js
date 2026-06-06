@@ -23,7 +23,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase Timeout')), 3000)
+      setTimeout(() => reject(new Error('Supabase Timeout')), 12000)
     );
 
     const { data: dbData, error } = await Promise.race([dbPromise, timeoutPromise]);
