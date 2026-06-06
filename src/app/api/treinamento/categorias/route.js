@@ -5,7 +5,7 @@ const CATEGORIAS = ['dna_charles', 'argumentos', 'contratos', 'regiao', 'pipelin
 
 export async function GET() {
   try {
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { data, error } = await db
       .from('treinamento')
       .select('categoria')

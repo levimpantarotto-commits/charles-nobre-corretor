@@ -4,7 +4,7 @@ import { isAuthenticated } from '@/lib/admin-auth';
 
 export async function GET(request) {
   try {
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { data, error } = await db
       .from('skills')
       .select('*')
@@ -36,7 +36,7 @@ export async function POST(request) {
       );
     }
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { data, error } = await db
       .from('skills')
       .insert({ slug, titulo, descricao, prompt_template, matchers, criado_em: new Date().toISOString() })

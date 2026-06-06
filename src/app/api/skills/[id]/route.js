@@ -12,7 +12,7 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { data, error } = await db
       .from('skills')
       .update({ ...body, atualizado_em: new Date().toISOString() })
@@ -38,7 +38,7 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params;
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { error } = await db.from('skills').delete().eq('id', id);
 
     if (error) throw error;

@@ -7,7 +7,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const historico = searchParams.get('historico') === 'true';
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     let query = db
       .from('briefings')
       .select('*')
@@ -38,7 +38,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
 
     // Coleta métricas
     const now = new Date();

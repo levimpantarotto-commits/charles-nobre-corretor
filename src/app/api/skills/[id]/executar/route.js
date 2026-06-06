@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Campo obrigatório: input' }, { status: 400 });
     }
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
 
     // Busca a skill
     const { data: skill, error: skillErr } = await db

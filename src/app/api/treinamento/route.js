@@ -7,7 +7,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const todos = searchParams.get('todos') === 'true';
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     let query = db
       .from('treinamento')
       .select('*')
@@ -52,7 +52,7 @@ export async function POST(request) {
       );
     }
 
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     const { data, error } = await db
       .from('treinamento')
       .insert({ categoria, titulo, conteudo, tipo, ativo: true, criado_em: new Date().toISOString() })

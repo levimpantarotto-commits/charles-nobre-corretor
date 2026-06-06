@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET() {
   try {
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
 
     const now = new Date();
     const iniHoje = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
