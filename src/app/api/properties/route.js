@@ -17,9 +17,12 @@ function readLocalCanonical() {
 
 export async function GET() {
   try {
+    // Ordena imóveis próprios do Charles primeiro (origem 'charles' < 'rokni' no alfabeto),
+    // depois os importados. Dentro de cada grupo, mais recentes primeiro.
     const dbPromise = supabase
       .from('properties')
       .select('*')
+      .order('origem', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) =>
