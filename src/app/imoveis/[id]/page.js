@@ -22,7 +22,11 @@ export default function PropertyDetail() {
       .then((r) => r.json())
       .then((data) => {
         if (!alive || !Array.isArray(data)) return;
-        const found = data.find((p) => String(p.id) === String(params.id)) ?? null;
+        let found = data.find((p) => String(p.id) === String(params.id)) ?? null;
+        // Imóvel sem foto fica oculto do público (reaparece ao ganhar imagem)
+        if (found && !(Array.isArray(found.images) && found.images.length > 0)) {
+          found = null;
+        }
         setProperty(found);
         setShowVideo(Boolean(found?.video));
       })
