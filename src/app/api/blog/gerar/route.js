@@ -21,6 +21,32 @@ const TEMAS = [
   { city: null, tema: 'Imóvel para veraneio x moradia fixa: o que considerar no litoral catarinense', tags: ['veraneio', 'investimento', 'litoral'] },
 ];
 
+// Busca imagem de capa temática no Pexels (banco grátis)
+async function buscarCapa(city, tags) {
+  const key = process.env.PEXELS_API_KEY;
+  if (!key) return null;
+  const t = `${city || ''} ${(tags || []).join(' ')}`.toLowerCase();
+  let query = 'beach house ocean view brazil';
+  if (t.includes('garopaba')) query = 'beach coastline brazil aerial';
+  else if (t.includes('imaru')) query = 'green hills lake countryside';
+  else if (t.includes('terreno')) query = 'land plot coastal';
+  else if (t.includes('investiment') || t.includes('investir')) query = 'modern beach apartment building';
+  else if (t.includes('bairro') || t.includes('morar')) query = 'beachfront neighborhood houses';
+  try {
+    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20&orientation=landscape`, {
+      headers: { Authorization: key },
+    });
+    const j = await res.json();
+    const fotos = j.photos || [];
+    if (!fotos.length) return null;
+    // varia a foto pelo segundo atual pra não repetir sempre (sem Math.random no topo)
+    const foto = fotos[new Date().getSeconds() % fotos.length];
+    return foto.src.large2x || foto.src.large || null;
+  } catch {
+    return null;
+  }
+}
+
 function slugify(s) {
   return String(s || '')
     .toLowerCase()
@@ -103,13 +129,14 @@ export async function POST(request) {
     const escolhido = pool[idx];
 
     const ia = await gerarConteudoIA(escolhido.tema, escolhido.city);
+    const capa = await buscarCapa(escolhido.city, escolhido.tags);
 
     const row = {
       slug: slugify(ia.title),
       title: ia.title,
       excerpt: ia.excerpt || null,
       content_md: ia.content_md,
-      cover_image: null,
+      cover_image: capa,
       tags: escolhido.tags,
       city: escolhido.city,
       author: 'Charles R. Nobre',
