@@ -13,24 +13,32 @@ function readLocalCanonical() {
   return Array.isArray(data) ? data.map((it) => toCanonical(normalizeLegacy(it))) : [];
 }
 
+// Mantém só imóveis com ao menos 1 foto — imóvel sem foto fica oculto do site
+// público automaticamente, e reaparece sozinho assim que ganhar uma imagem.
+function comFoto(p) {
+  return Array.isArray(p.images) && p.images.length > 0;
+}
+
 export async function getAllProperties() {
   try {
+    // Imóveis próprios do Charles primeiro ('charles' < 'rokni'), depois importados.
     const dbPromise = supabase
       .from('properties')
       .select('*')
+      .order('origem', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false });
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase Timeout')), 3000)
+      setTimeout(() => reject(new Error('Supabase Timeout')), 12000)
     );
     const { data, error } = await Promise.race([dbPromise, timeoutPromise]);
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data.map(toCanonical);
+      return data.map(toCanonical).filter(comFoto);
     }
     if (error) console.warn('properties: Supabase erro, usando fallback —', error.message);
   } catch (err) {
     console.warn('properties: Supabase indisponível, usando fallback —', err.message);
   }
-  return readLocalCanonical();
+  return readLocalCanonical().filter(comFoto);
 }
 
 export async function getPropertyById(id) {
