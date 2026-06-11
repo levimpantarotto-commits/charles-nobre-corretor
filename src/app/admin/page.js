@@ -20,6 +20,7 @@ import WhatsappTab from './_components/WhatsappTab';
 import TerminalTab from './_components/TerminalTab';
 import CriativosTab from './_components/CriativosTab';
 import VozTab from './_components/VozTab';
+import JarvisTab from './_components/JarvisTab';
 
 // ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
@@ -801,6 +802,7 @@ export default function AdminPage() {
         {activeTab === 'terminal' && <TerminalTab />}
         {activeTab === 'criativos' && <CriativosTab />}
         {activeTab === 'voz' && <VozTab />}
+        {activeTab === 'jarvis' && <JarvisTab />}
         {activeTab === 'settings' && (
           <SettingsTab
             siteConfigs={siteConfigs}

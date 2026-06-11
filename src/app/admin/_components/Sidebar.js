@@ -1,8 +1,9 @@
 'use client';
-import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles, FileText, MessageCircle, Zap, BookOpen, ClipboardList, BarChart2, ImageIcon, Mic } from 'lucide-react';
+import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles, FileText, MessageCircle, Zap, BookOpen, ClipboardList, BarChart2, ImageIcon, Mic, Bot } from 'lucide-react';
 
 const TABS = [
   { id: 'terminal', label: 'Live Ops', Icon: BarChart2 },
+  { id: 'jarvis', label: 'Jarvis', Icon: Bot },
   { id: 'catalog', label: 'Catálogo', Icon: Building2 },
   { id: 'leads', label: 'Leads', Icon: Users },
   { id: 'agenda', label: 'Agenda', Icon: Calendar },
