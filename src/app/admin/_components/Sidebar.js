@@ -1,5 +1,5 @@
 'use client';
-import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles, FileText, MessageCircle, Zap, BookOpen, ClipboardList, BarChart2 } from 'lucide-react';
+import { Building2, Users, Settings as SettingsIcon, LogOut, Calendar, CheckSquare, Terminal, Sparkles, FileText, MessageCircle, Zap, BookOpen, ClipboardList, BarChart2, ImageIcon, Mic } from 'lucide-react';
 
 const TABS = [
   { id: 'terminal', label: 'Live Ops', Icon: BarChart2 },
@@ -9,6 +9,8 @@ const TABS = [
   { id: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle },
   { id: 'approvals', label: 'Aprovações', Icon: CheckSquare },
   { id: 'briefing', label: 'Briefing', Icon: ClipboardList },
+  { id: 'criativos', label: 'Criativos', Icon: ImageIcon },
+  { id: 'voz', label: 'Voz', Icon: Mic },
   { id: 'skills', label: 'Skills', Icon: Zap },
   { id: 'treinamento', label: 'Treinamento', Icon: BookOpen },
   { id: 'blog', label: 'Blog', Icon: FileText },

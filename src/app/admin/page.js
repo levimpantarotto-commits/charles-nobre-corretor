@@ -18,6 +18,8 @@ import SkillsTab from './_components/SkillsTab';
 import TreinamentoTab from './_components/TreinamentoTab';
 import WhatsappTab from './_components/WhatsappTab';
 import TerminalTab from './_components/TerminalTab';
+import CriativosTab from './_components/CriativosTab';
+import VozTab from './_components/VozTab';
 
 // ===== LOGIN =====
 function LocalAdminLogin({ onLogin, error, submitting }) {
@@ -797,6 +799,8 @@ export default function AdminPage() {
         {activeTab === 'treinamento' && <TreinamentoTab />}
         {activeTab === 'whatsapp' && <WhatsappTab />}
         {activeTab === 'terminal' && <TerminalTab />}
+        {activeTab === 'criativos' && <CriativosTab />}
+        {activeTab === 'voz' && <VozTab />}
         {activeTab === 'settings' && (
           <SettingsTab
             siteConfigs={siteConfigs}
