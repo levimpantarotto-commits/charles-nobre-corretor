@@ -273,8 +273,21 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
 
       <AnimatePresence>
         {showForm && (
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="form-overlay">
-            <div className="marketplace-grid-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="form-overlay"
+            onClick={(e) => { if (e.target.classList.contains('form-overlay')) onCancel(); }}
+          >
+            <motion.div
+              className="marketplace-grid-3"
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
               <div className="col-thumbnails">
                 <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
                 <div className="thumbs-scroll-area">
@@ -410,7 +423,7 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
                   </button>
                 </form>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -452,8 +465,42 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
         .btn-icon.danger:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .empty-grid { padding: 4rem; text-align: center; color: #475569; display: flex; flex-direction: column; align-items: center; gap: 0.8rem; grid-column: 1 / -1; }
 
-        .form-overlay { position: fixed; inset: 0; left: 240px; background: #020617; z-index: 2000; overflow-y: auto; overflow-x: hidden; }
-        .marketplace-grid-3 { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr 380px; }
+        /* Overlay escuro translúcido cobrindo TUDO (inclui sidebar) */
+        .form-overlay {
+          position: fixed; inset: 0;
+          background: rgba(2, 6, 23, 0.78);
+          backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+          z-index: 5000;
+          display: flex; align-items: center; justify-content: center;
+          padding: 2rem;
+          overflow-y: auto;
+        }
+        /* Modal centralizado responsivo */
+        .marketplace-grid-3 {
+          width: 100%; max-width: 1400px; max-height: calc(100vh - 4rem);
+          display: grid; grid-template-columns: 260px 1fr 360px;
+          background: #0a0a12;
+          border: 1px solid rgba(234, 179, 8, 0.15);
+          border-radius: 16px;
+          box-shadow: 0 40px 100px rgba(0,0,0,0.7);
+          overflow: hidden;
+        }
+        /* Tablet: foto vira menor, mantém 3 colunas */
+        @media (max-width: 1200px) {
+          .marketplace-grid-3 { grid-template-columns: 220px 1fr 320px; }
+        }
+        /* Mobile / tela menor: vira coluna única com scroll */
+        @media (max-width: 900px) {
+          .form-overlay { padding: 0; }
+          .marketplace-grid-3 {
+            grid-template-columns: 1fr;
+            max-width: 100%;
+            max-height: 100vh;
+            border-radius: 0;
+            height: 100%;
+            overflow-y: auto;
+          }
+        }
         .col-thumbnails { border-right: 1px solid #1e293b; background: #070b14; padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden; }
         .thumbs-scroll-area { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.5rem; }
         .col-header h3 { font-size: 0.8rem; font-weight: 900; color: #eab308; text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.15em; }

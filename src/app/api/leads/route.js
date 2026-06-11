@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabase-admin';
 import { isAuthenticated } from '@/lib/admin-auth';
 import { logActivity } from '@/lib/activity-log';
+import { qualificarLeadEmBackground } from '@/lib/qualificar-lead';
 
 // POST público: captura lead do site
 export async function POST(request) {
@@ -24,20 +25,43 @@ export async function POST(request) {
     phone: (body.phone || '').trim() || null,
     property_title: (body.property_title || '').trim() || null,
     property_id: (body.property_id || '').trim() || null,
+    notes: (body.message || body.mensagem || '').trim() || null,
     source: (body.source || 'site').trim() || 'site',
   };
 
-  const { error } = await supabase.from('leads').insert(row);
+  // Tenta capturar o id pra disparar qualificação em background
+  const { data: inserted, error } = await supabase
+    .from('leads')
+    .insert(row)
+    .select()
+    .single();
+
   if (error) {
     console.error('Erro inserindo lead:', error);
     return NextResponse.json({ error: 'Falha ao registrar' }, { status: 500 });
   }
+
+  const leadId = inserted?.id;
+
   logActivity({
     agent: 'site',
     message: `Novo lead capturado: ${row.name}${row.property_title ? ` (interesse em ${row.property_title})` : ''}`,
-    context: { name: row.name, source: row.source },
+    context: { lead_id: leadId, source: row.source },
   });
-  return NextResponse.json({ success: true });
+
+  // SDR qualifica em background (não bloqueia resposta)
+  setImmediate(() => {
+    qualificarLeadEmBackground({
+      leadId,
+      nome: row.name,
+      telefone: row.phone || '',
+      email: row.email || '',
+      interesse: row.property_title || '',
+      mensagem: row.notes || '',
+    }).catch((err) => console.error('[leads qualificacao bg]', err));
+  });
+
+  return NextResponse.json({ success: true, lead_id: leadId });
 }
 
 // GET admin: lista todos os leads ordenados por mais recente

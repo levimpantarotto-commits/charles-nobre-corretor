@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAuthenticated } from '@/lib/admin-auth';
+import { findMatchingSkill, stripTrigger } from '@/lib/skill-matcher';
 
 export async function POST(request) {
   const t0 = Date.now();
@@ -22,6 +23,87 @@ export async function POST(request) {
     }
 
     const db = supabaseAdmin;
+
+    // Interceptor de skills: checa se a última mensagem dispara alguma skill ativa
+    const lastUserMsg = [...messages].reverse().find((m) => m?.role === 'user');
+    const userText = lastUserMsg?.content || '';
+
+    if (userText) {
+      try {
+        const { data: skills } = await db
+          .from('skills')
+          .select('*')
+          .eq('ativo', true);
+
+        const match = findMatchingSkill(userText, skills || []);
+        if (match) {
+          const { skill, trigger } = match;
+          const tSkill = Date.now();
+          const input = stripTrigger(userText, trigger);
+          const prompt = String(skill.prompt_template || '').replace('{{input}}', input);
+          const modeloSkill = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+          try {
+            const skillResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: modeloSkill,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+              }),
+            });
+
+            if (!skillResp.ok) {
+              const txt = await skillResp.text();
+              throw new Error(`Groq ${skillResp.status}: ${txt.slice(0, 300)}`);
+            }
+
+            const skillData = await skillResp.json();
+            const skillOutput = skillData?.choices?.[0]?.message?.content?.trim() || '';
+            const resposta = `**🛠️ Skill: ${skill.titulo}**\n\n${skillOutput}`;
+            const ms = Date.now() - tSkill;
+
+            try {
+              await db.from('skill_execucoes').insert({
+                skill_id: skill.id,
+                input: userText,
+                output: skillOutput,
+                ms,
+                sucesso: true,
+                executado_em: new Date().toISOString(),
+              });
+            } catch (logErr) {
+              console.warn('[ai/chat] skill_execucoes log falhou:', logErr.message);
+            }
+
+            return NextResponse.json({
+              resposta,
+              modelo: modeloSkill,
+              skill: skill.slug,
+              ms: Date.now() - t0,
+            });
+          } catch (skillErr) {
+            console.error('[ai/chat] skill falhou, caindo no fluxo normal:', skillErr);
+            try {
+              await db.from('skill_execucoes').insert({
+                skill_id: skill.id,
+                input: userText,
+                output: String(skillErr.message || skillErr),
+                ms: Date.now() - tSkill,
+                sucesso: false,
+                executado_em: new Date().toISOString(),
+              });
+            } catch {}
+          }
+        }
+      } catch (e) {
+        console.warn('[ai/chat] falha ao checar skills:', e.message);
+      }
+    }
 
     // Carrega DNA / treinamento ativo
     let contexto = '';
