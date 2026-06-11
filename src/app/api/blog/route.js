@@ -27,7 +27,7 @@ export async function GET(request) {
 
     let q;
     if (authed && publishedFilter === 'all') {
-      q = supabaseAdmin().from('blog_posts').select('*').order('created_at', { ascending: false });
+      q = supabaseAdmin.from('blog_posts').select('*').order('created_at', { ascending: false });
     } else {
       q = supabase
         .from('blog_posts_public')
@@ -81,7 +81,7 @@ export async function POST(request) {
       published_at: body.published ? (body.published_at || new Date().toISOString()) : null,
     };
 
-    const { data, error } = await supabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('blog_posts')
       .insert(row)
       .select()

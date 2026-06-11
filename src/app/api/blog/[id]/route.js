@@ -20,7 +20,7 @@ export async function GET(_request, { params }) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
   const authed = await isAuthenticated();
-  const client = authed ? supabaseAdmin() : supabase;
+  const client = authed ? supabaseAdmin : supabase;
   const table = authed ? 'blog_posts' : 'blog_posts_public';
   const { data, error } = await client.from(table).select('*').eq('id', id).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
@@ -59,7 +59,7 @@ export async function PUT(request, { params }) {
       }
     }
 
-    const { data, error } = await supabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('blog_posts')
       .update(patch)
       .eq('id', id)
@@ -82,7 +82,7 @@ export async function DELETE(_request, { params }) {
     return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY ausente' }, { status: 503 });
   }
   const { id } = await params;
-  const { error } = await supabaseAdmin().from('blog_posts').delete().eq('id', id);
+  const { error } = await supabaseAdmin.from('blog_posts').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   await logActivity('blog_post_deleted', { id });
   return NextResponse.json({ ok: true });
