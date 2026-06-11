@@ -678,15 +678,28 @@ export default function AdminPage() {
   };
 
   const handleEdit = (prop) => {
+    if (!prop || !prop.id) {
+      console.warn('[admin] handleEdit chamado sem prop valido', prop);
+      return;
+    }
     setEditingId(prop.id);
+    // Normaliza imagens (Rokni original podia vir como [{large,medium}], mas o
+    // toCanonical ja deveria flatten; deixamos defensivo de qualquer jeito).
+    const imgs = Array.isArray(prop.images)
+      ? prop.images.map((i) => (typeof i === 'string' ? i : (i?.large || i?.medium || ''))).filter(Boolean)
+      : [];
     setFormData({
       ...prop,
-      price: prop.price.toString(),
+      title: prop.title || '',
+      description: prop.description || '',
+      price: String(prop.price ?? ''),
       city: prop.city || 'Imbituba',
       neighborhood: prop.neighborhood || '',
       state: prop.state || 'SC',
+      category: prop.category || 'Residencial',
       type: prop.type || '',
       intent: prop.intent || 'venda',
+      images: imgs,
       video: prop.video || '',
     });
     setShowForm(true);
