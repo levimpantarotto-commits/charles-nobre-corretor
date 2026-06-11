@@ -278,8 +278,16 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="form-overlay"
-            onClick={(e) => { if (e.target.classList.contains('form-overlay')) onCancel(); }}
+            data-form-overlay="1"
+            onClick={(e) => { if (e.target.getAttribute('data-form-overlay') === '1') onCancel(); }}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(2, 6, 23, 0.80)',
+              backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              zIndex: 9000,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '2rem', overflowY: 'auto',
+            }}
           >
             <motion.div
               className="marketplace-grid-3"
@@ -287,6 +295,15 @@ function CatalogTab({ properties, onCreate, onEdit, onDelete, onReload, showForm
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                width: '100%', maxWidth: 1280, maxHeight: 'calc(100vh - 4rem)',
+                display: 'grid', gridTemplateColumns: '260px 1fr 360px',
+                background: '#0a0a12',
+                border: '1px solid rgba(234, 179, 8, 0.15)',
+                borderRadius: 16,
+                boxShadow: '0 40px 100px rgba(0,0,0,0.7)',
+                overflow: 'hidden',
+              }}
             >
               <div className="col-thumbnails">
                 <div className="col-header"><h3>Fotos ({formData.images.length})</h3></div>
